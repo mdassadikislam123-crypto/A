@@ -7,7 +7,7 @@ API_TOKEN = '8973617780:AAHcgmcSLKk2UDBjyj_Uyn33vkHMOS5DYz0'
 ADMIN_ID = 7283303333 
 
 WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' #WhatsApppp লিংক
-ADMIN_TELEGRAM = 'https://t.me/ownerastopupup # টেলিগ্রাম প্রোফাইল লিংক
+ADMIN_TELEGRAM = 'https://t.me/ownerastopupup' # টেলিগ্রাম প্রোফাইল লিংক
 bot = telebot.TeleBot(API_TOKEN)
 
 # ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
