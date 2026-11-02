@@ -1,18 +1,5 @@
 import os
 import threading
-import time
-from flask import Flask
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-API_TOKEN = '8973617780:AAErTwc1zEK8vSh0DZJqNFLIhJZmP3tFl4E'
-
-# আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
-ADMIN_ID = 7283303333 
-
-WHATSAPP_LINK = 'https://wa.me' # WhatsApp লিংক
-ADMIN_TELEGRAM = 'https://t.me' # টেলিগ্রাম প্রোফাইল লিংকimport os
-import threading
 from flask import Flask, request
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -22,8 +9,8 @@ API_TOKEN = '8973617780:AAErTwc1zEK8vSh0DZJqNFLIhJZmP3tFl4E'
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
 
-WHATSAPP_LINK = 'https://wa.me' # WhatsApp লিংক
-ADMIN_TELEGRAM = 'https://t.me' # টেলিগ্রাম প্রোফাইল লিংক
+WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' # আপনার দেওয়া হোয়াটসঅ্যাপ লিংক
+ADMIN_TELEGRAM = 'https://t.me/ownerastopupup' # আপনার দেওয়া টেলিগ্রাম লিংক
 bot = telebot.TeleBot(API_TOKEN)
 
 # রেন্ডার সার্ভার সচল রাখার জন্য হালকা ফ্ল্যাস্ক সার্ভার
@@ -33,7 +20,7 @@ app = Flask(__name__)
 def home():
     return "Bot is running successfully!"
 
-# টেলিগ্রাম থেকে আপডেট গ্রহণের জন্য ওয়েবুক (Webhook) রাউট
+# টেলিগ্রাম থেকে আপডেট গ্রহণের জন্য ওয়েবুক (Webhook) রাউট যুক্ত করা হয়েছে
 @app.route(f'/{API_TOKEN}', methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
@@ -249,3 +236,63 @@ def handle_all_messages(message):
         return
 
     elif current_state == "WAITING_FOR_TRX":
+        if chat_id not in user_orders:
+            bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
+            user_states.pop(chat_id, None)
+            return
+
+        photo_id = None
+        trx_text = "N/A"
+
+        if message.photo:
+            photo_id = message.photo[-1].file_id
+            trx_text = "[স্ক্রিনশট]"
+        elif message.text:
+            trx_text = message.text.strip()
+            if len(trx_text) < 6:
+                bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে আপনার সঠিক TrxID লিখে পাঠান।")
+                return
+        
+        user_orders[chat_id]["trx"] = trx_text
+        user_orders[chat_id]["photo_id"] = photo_id
+        
+        order_info = user_orders[chat_id]
+        selected_package = order_info.get("package", {"name": "অজানা", "price": ""})
+        method_name = order_info.get("method", "N/A")
+        uid = order_info.get("uid", "N/A")
+        
+        bot.reply_to(message, "⏳ আপনার ট্রানজেকশন আইডি এবং গেম UID যাচাই করা হচ্ছে...\n\n🕒 দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন, আপনার অর্ডারটি সফলভাবে চেক করে দ্রুত আপনার ইন-গেমে অ্যাড করা হবে।")
+        
+        admin_msg = (f"🔔 নতুন অর্ডার যাচাইয়ের জন্য এসেছে!\n\n"
+                     f"👤 ক্রেতা: {user_info}\n"
+                     f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
+                     f"💳 মাধ্যম: {method_name}\n"
+                     f"🔤 TrxID: {trx_text}\n"
+                     f"🆔 গেম UID: `{uid}`")
+        
+        try:
+            if photo_id:
+                bot.send_photo(ADMIN_ID, photo_id, caption=admin_msg, parse_mode="Markdown")
+            else:
+                bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+        except Exception as e:
+            print(f"Forward order failed: {e}")
+            bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+            
+        user_states.pop(chat_id, None)
+        user_orders.pop(chat_id, None)
+        return
+
+    else:
+        bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
+
+if __name__ == '__main__':
+    # রেন্ডার সার্ভারের জন্য স্বয়ংক্রিয় ওয়েবুক সেটআপ কনফিগারেশন
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        bot.remove_webhook()
+        bot.set_webhook(url=f"{RENDER_EXTERNAL_URL}/{API_TOKEN}")
+    
+    # পোর্ট বাইন্ড করে Flask অ্যাপ সচল রাখা
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
