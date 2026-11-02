@@ -211,7 +211,14 @@ def handle_all_messages(message):
             user_orders[chat_id]["trx"] = "[স্ক্রিনশট]"
             user_orders[chat_id]["photo_id"] = photo_id
         elif message.text:
-            user_orders[chat_id]["trx"] = message.text
+            trx_text = message.text.strip()
+            
+            # ট্রানজেকশন আইডি কমপক্ষে ৬ অক্ষরের না হলে তা গ্রহণ করবে না
+            if len(trx_text) < 6:
+                bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে আপনার সঠিক TrxID (যেমন: 8N... বা সঠিক বিকাশ/রকেট ট্রানজেকশন আইডি) লিখে পাঠান।")
+                return
+                
+            user_orders[chat_id]["trx"] = trx_text
             user_orders[chat_id]["photo_id"] = None
             
         user_states[chat_id] = "WAITING_FOR_UID"
