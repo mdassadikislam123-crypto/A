@@ -34,7 +34,7 @@ PAYMENT_NUMBERS = {
     "rocket": "01820313593"
 }
 
-# প্যাকেজের তালিকা ও দাম (ডুপ্লিকেট কি ঠিক করা হয়েছে)
+# প্যাকেজের তালিকা ও দাম
 packages = {
     "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২১ TK"},
     "pack2": {"name": "💎 ৫০ ডায়মন্ড", "price": "৩৬ TK"},
@@ -243,3 +243,24 @@ def handle_all_messages(message):
                 bot.send_photo(ADMIN_ID, photo_id, caption=admin_msg, parse_mode="Markdown")
             else:
                 bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+                
+            bot.reply_to(message, "✅ আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে! এডমিন যাচাই করে দ্রুত টপ-আপ সম্পন্ন করে দেবেন। ধন্যবাদ!")
+        except Exception as e:
+            print(f"Forward order failed: {e}")
+            bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+            
+        user_states.pop(chat_id, None)
+        user_orders.pop(chat_id, None)
+        return
+
+    else:
+        bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
+
+if __name__ == '__main__':
+    # আলাদা থ্রেডে Flask সার্ভার চালু করা যাতে রেন্ডার পোর্ট ওপেন রাখতে পারে
+    t = threading.Thread(target=run_flask)
+    t.daemon = True
+    t.start()
+    
+    # বট সচল রাখা
+    bot.infinity_polling()
