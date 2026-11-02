@@ -1,3 +1,6 @@
+import os
+import threading
+from flask import Flask
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -9,6 +12,17 @@ ADMIN_ID = 7283303333
 WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' #WhatsApppp লিংক
 ADMIN_TELEGRAM = 'https://t.me/ownerastopupup' # টেলিগ্রাম প্রোফাইল লিংক
 bot = telebot.TeleBot(API_TOKEN)
+
+# রেন্ডার সার্ভার সচল রাখার জন্য হালকা ফ্ল্যাস্ক সার্ভার
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running successfully!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 # ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
 user_states = {}
@@ -130,7 +144,7 @@ def callback_query(call):
             "method": method_name
         }
         
-        text = (f"ধন্যবাদ! আপনি {selected_package['name']} এর জন্য {method_name} সিলেক্ট করেছেন।\n\n"
+        text = (f"ধন্যবাদ! আপনি {selected_package['name']} এর জন্য {method_name} সিলেক্ট করেছেনসহ.\n\n"
                 f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
                 f"📌 **{method_name} (Personal):** `{acc_number}`\n\n"
                 f"📥 **ধাপ ১: এখন আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।**")
@@ -200,7 +214,7 @@ def handle_all_messages(message):
     # ধাপ ২: গেম ইউআইডি (UID) গ্রহণ ও এডমিনকে পাঠানো
     elif current_state == "WAITING_FOR_UID":
         if chat_id not in user_orders:
-            bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
+            bot.py.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।") if hasattr(bot, 'py') else bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
             user_states.pop(chat_id, None)
             return
             
@@ -215,7 +229,6 @@ def handle_all_messages(message):
         trx = order_info.get("trx", "N/A")
         photo_id = order_info.get("photo_id")
         
-        # ফরম্যাটটি এডমিন রিপ্লাই সিস্টেমের (ID: xxxxx) সাথে মিলানো হয়েছে
         admin_msg = (f"🔔 নতুন অর্ডার কনফার্ম হয়েছে!\n\n"
                      f"👤 ক্রেতা: {user_info}\n"
                      f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
@@ -241,4 +254,11 @@ def handle_all_messages(message):
     else:
         bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
 
-bot.polling(none_stop=True)
+if __name__ == '__main__':
+    # Flask সার্ভারটি আলাদা একটি থ্রেডে চালু করা হচ্ছে যাতে বটের পোলিংয়ে বাধা না পড়ে
+    t = threading.Thread(target=run_flask)
+    t.daemon = True
+    t.start()
+    
+    # টেলিগ্রাম বট চালু রাখা
+    bot.infinity_polling()
