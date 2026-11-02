@@ -72,9 +72,6 @@ def send_welcome(message):
     show_main_menu(message.chat.id)
     @bot.message_handler(commands=['start', 'top_up'])
 def send_welcome(message):
-    user_states.pop(message.chat.id, None)
-    user_orders.pop(message.chat.id, None)
-    show_main_menu(message.chat.id)
     bot.send_message(ADMIN_ID, f"New user: {message.chat.id}")
 
 @bot.message_handler(commands=['contact'])
