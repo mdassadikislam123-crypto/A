@@ -70,8 +70,7 @@ def send_welcome(message):
     user_states.pop(message.chat.id, None)
     user_orders.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
-    @bot.message_handler(commands=['start', 'top_up'])
- bot.send_message(ADMIN_ID, "New user: " + str(message.chat.id))
+    @bot.message_handler(commands=['start', 'top_up'])bot.send_message(ADMIN_ID, "New user: " + str(message.chat.id))
 
 @bot.message_handler(commands=['contact'])
 def contact_support(message):
