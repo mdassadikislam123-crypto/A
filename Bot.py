@@ -9,7 +9,7 @@ API_TOKEN = '8973617780:AAHcgmcSLKk2UDBjyj_Uyn33vkHMOS5DYz0'
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
 
-WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' #WhatsApppp লিংক
+WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' # WhatsApp লিংক
 ADMIN_TELEGRAM = 'https://t.me/ownerastopupup' # টেলিগ্রাম প্রোফাইল লিংক
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -34,7 +34,7 @@ PAYMENT_NUMBERS = {
     "rocket": "01820313593"
 }
 
-# প্যাকেজের তালিকা ও দাম
+# packages ডিকশনারির ডুপ্লিকেট কি (pack8) ঠিক করা হয়েছে
 packages = {
     "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২১ TK"},
     "pack2": {"name": "💎 ৫০ ডায়মন্ড", "price": "৩৬ TK"},
@@ -42,8 +42,8 @@ packages = {
     "pack4": {"name": "💎 ২৪০ ডায়মন্ড", "price": "১৫৩ TK"},
     "pack5": {"name": "💎 ৬১০ ডায়মন্ড", "price": "৩৮০ TK"},
     "pack6": {"name": "💎 ১২৫০ ডায়মন্ড", "price": "৭৭০ TK"},
-    "pack8": {"name": "weekly membership", "price": "১৫০"},
-    "pack8": {"name": "Monthly membership", "price": "৭৬০"},
+    "pack7": {"name": "weekly membership", "price": "১৫০ TK"},
+    "pack8": {"name": "Monthly membership", "price": "৭৬০ TK"},
     "pack9": {"name": "২০০০ Unipin out ofstok", "price": "১৬৯০ TK"}
 }
 
@@ -70,7 +70,10 @@ def send_welcome(message):
     user_states.pop(message.chat.id, None)
     user_orders.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
-    @bot.message_handler(commands=['start', 'top_up'])bot.send_message(ADMIN_ID, "New user: " + str(message.chat.id))
+    try:
+        bot.send_message(ADMIN_ID, f"New user started the bot: {message.chat.id}")
+    except Exception as e:
+        print(f"Failed to send alert to admin: {e}")
 
 @bot.message_handler(commands=['contact'])
 def contact_support(message):
@@ -146,7 +149,7 @@ def callback_query(call):
             "method": method_name
         }
         
-        text = (f"ধন্যবাদ! আপনি {selected_package['name']} এর জন্য {method_name} সিলেক্ট করেছেনসহ.\n\n"
+        text = (f"ধন্যবাদ! আপনি {selected_package['name']} এর জন্য {method_name} সিলেক্ট করেছেন।\n\n"
                 f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
                 f"📌 **{method_name} (Personal):** `{acc_number}`\n\n"
                 f"📥 **ধাপ ১: এখন আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।**")
@@ -171,17 +174,14 @@ def handle_all_messages(message):
             replied_text = message.reply_to_message.text or message.reply_to_message.caption
             if replied_text and "ID:" in replied_text:
                 try:
-                    # আইডি সঠিকভাবে আলাদা করার লজিক
                     parts = replied_text.split("ID:")
                     user_id_part = int(parts[1].split(')')[0].strip())
                     
-                    # স্বয়ংক্রিয় ডিফল্ট মেসেজ (যদি এডমিন কিছু লিখে না পাঠান)
                     success_msg = (
                         "🎉 **অভিনন্দন! আপনার টপ-আপ সফলভাবে সম্পন্ন হয়েছে।** 🎮\n\n"
                         "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
                     )
                     
-                    # এডমিন যদি আলাদা কিছু লিখে পাঠান সেটা যাবে, না হলে ডিফল্ট সাকসেস মেসেজ যাবে
                     final_reply = message.text if message.text else success_msg
                     
                     bot.send_message(user_id_part, final_reply, parse_mode="Markdown")
@@ -216,7 +216,7 @@ def handle_all_messages(message):
     # ধাপ ২: গেম ইউআইডি (UID) গ্রহণ ও এডমিনকে পাঠানো
     elif current_state == "WAITING_FOR_UID":
         if chat_id not in user_orders:
-            bot.py.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।") if hasattr(bot, 'py') else bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
+            bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
             user_states.pop(chat_id, None)
             return
             
@@ -243,24 +243,3 @@ def handle_all_messages(message):
                 bot.send_photo(ADMIN_ID, photo_id, caption=admin_msg, parse_mode="Markdown")
             else:
                 bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-                
-            bot.reply_to(message, "✅ আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে! এডমিন যাচাই করে দ্রুত টপ-আপ সম্পন্ন করে দেবেন। ধন্যবাদ!")
-        except Exception as e:
-            print(f"Forward order failed: {e}")
-            bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
-            
-        user_states.pop(chat_id, None)
-        user_orders.pop(chat_id, None)
-        return
-
-    else:
-        bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
-
-if __name__ == '__main__':
-    # Flask সার্ভারটি আলাদা একটি থ্রেডে চালু করা হচ্ছে যাতে বটের পোলিংয়ে বাধা না পড়ে
-    t = threading.Thread(target=run_flask)
-    t.daemon = True
-    t.start()
-    
-    # টেলিগ্রাম বট চালু রাখা
-    bot.infinity_polling()
