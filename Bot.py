@@ -263,18 +263,24 @@ def handle_all_messages(message):
         
         bot.reply_to(message, "⏳ আপনার ট্রানজেকশন আইডি এবং গেম UID যাচাই করা হচ্ছে...\n\n🕒 দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন, আপনার অর্ডারটি সফলভাবে চেক করে দ্রুত আপনার ইন-গেমে অ্যাড করা হবে।")
         
-        admin_msg = (f"🔔 নতুন অর্ডার যাচাইয়ের জন্য এসেছে!\n\n"
-                     f"👤 ক্রেতা: {user_info}\n"
-                     f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
-                     f"💳 মাধ্যম: {method_name}\n"
-                     f"🔤 TrxID: {trx_text}\n"
-                     f"🆔 গেম UID: `{uid}`")
+        # অ্যাডমিনের জন্য আলাদা আলাদা মেসেজ ফরম্যাট (যাতে TrxID এবং UID আলাদা কপি করা যায়)
+        admin_header = (f"🔔 নতুন অর্ডার যাচাইয়ের জন্য এসেছে!\n\n"
+                        f"👤 ক্রেতা: {user_info}\n"
+                        f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
+                        f"💳 মাধ্যম: {method_name}")
+        
+        trx_msg = f"🔤 TrxID:\n`{trx_text}`"
+        uid_msg = f"🆔 গেম UID:\n`{uid}` (ID: {chat_id})"
         
         try:
             if photo_id:
-                bot.send_photo(ADMIN_ID, photo_id, caption=admin_msg, parse_mode="Markdown")
+                bot.send_photo(ADMIN_ID, photo_id, caption=admin_header, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
             else:
-                bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, admin_header, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
         except Exception as e:
             print(f"Forward order failed: {e}")
             bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
