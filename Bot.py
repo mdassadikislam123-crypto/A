@@ -36,14 +36,15 @@ PAYMENT_NUMBERS = {
 
 # প্যাকেজের তালিকা ও দাম
 packages = {
-    "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২২ TK"},
+    "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২১ TK"},
     "pack2": {"name": "💎 ৫০ ডায়মন্ড", "price": "৩৬ TK"},
-    "pack3": {"name": "💎 ১১৫ ডায়মন্ড", "price": "৭৭ TK"},
-    "pack4": {"name": "💎 ২৪০ ডায়মন্ড", "price": "১৫৪ TK"},
-    "pack5": {"name": "💎 ৬১০ ডায়মন্ড", "price": "৩৯০ TK"},
-    "pack6": {"name": "💎 ১২৫০ ডায়মন্ড", "price": "৭৮০ TK"},
-    "pack7": {"name": "Monthly", "price": "৭৭০ TK"},
-    "pack8": {"name": "২০০০ Unipin", "price": "১৬৯০ TK"}
+    "pack3": {"name": "💎 ১১৫ ডায়মন্ড", "price": "৭৬ TK"},
+    "pack4": {"name": "💎 ২৪০ ডায়মন্ড", "price": "১৫৩ TK"},
+    "pack5": {"name": "💎 ৬১০ ডায়মন্ড", "price": "৩৮০ TK"},
+    "pack6": {"name": "💎 ১২৫০ ডায়মন্ড", "price": "৭৭০ TK"},
+    "pack8": {"name": "weekly membership", "price": "১৫০"},
+    "pack8": {"name": "Monthly membership", "price": "৭৬০"},
+    "pack9": {"name": "২০০০ Unipin out ofstok", "price": "১৬৯০ TK"}
 }
 
 # মূল মেনু দেখানোর ফাংশন
@@ -69,6 +70,12 @@ def send_welcome(message):
     user_states.pop(message.chat.id, None)
     user_orders.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
+    @bot.message_handler(commands=['start', 'top_up'])
+def send_welcome(message):
+    user_states.pop(message.chat.id, None)
+    user_orders.pop(message.chat.id, None)
+    show_main_menu(message.chat.id)
+    bot.send_message(ADMIN_ID, f"New user: {message.chat.id}")
 
 @bot.message_handler(commands=['contact'])
 def contact_support(message):
