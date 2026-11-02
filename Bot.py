@@ -24,9 +24,10 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
+# ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ট্র্যাক করার জন্য ডিকশনারি ও সেট
 user_states = {}
 user_orders = {}
+notified_users = set()  # নতুন ব্যবহারকারী ট্র্যাক করার জন্য সেট
 
 # সঠিক পেমেন্ট নম্বর
 PAYMENT_NUMBERS = {
@@ -70,10 +71,14 @@ def send_welcome(message):
     user_states.pop(message.chat.id, None)
     user_orders.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
-    try:
-        bot.send_message(ADMIN_ID, f"New user: {message.chat.id}")
-    except Exception as e:
-        print(f"Failed to send alert to admin: {e}")
+    
+    # শুধুমাত্র প্রথমবার ইউজারের ক্ষেত্রে এডমিনকে অ্যালার্ট পাঠানো হবে
+    if message.chat.id not in notified_users:
+        notified_users.add(message.chat.id)
+        try:
+            bot.send_message(ADMIN_ID, f"New user: {message.chat.id}")
+        except Exception as e:
+            print(f"Failed to send alert to admin: {e}")
 
 @bot.message_handler(commands=['contact'])
 def contact_support(message):
