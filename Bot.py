@@ -9,8 +9,8 @@ API_TOKEN = '8973617780:AAHcgmcSLKk2UDBjyj_Uyn33vkHMOS5DYz0'
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
 
-WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1' # WhatsApp লিংক
-ADMIN_TELEGRAM = 'https://t.me/ownerastopupup' # টেলিগ্রাম প্রোফাইল লিংক
+WHATSAPP_LINK = 'https://wa.me' # WhatsApp লিংক
+ADMIN_TELEGRAM = 'https://t.me' # টেলিগ্রাম প্রোফাইল লিংক
 bot = telebot.TeleBot(API_TOKEN)
 
 # রেন্ডার সার্ভার সচল রাখার জন্য হালকা ফ্ল্যাস্ক সার্ভার
@@ -34,7 +34,7 @@ PAYMENT_NUMBERS = {
     "rocket": "01820313593"
 }
 
-# packages ডিকশনারির ডুপ্লিকেট কি (pack8) ঠিক করা হয়েছে
+# প্যাকেজের তালিকা ও দাম (ডুপ্লিকেট কি ঠিক করা হয়েছে)
 packages = {
     "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২১ TK"},
     "pack2": {"name": "💎 ৫০ ডায়মন্ড", "price": "৩৬ TK"},
@@ -71,7 +71,7 @@ def send_welcome(message):
     user_orders.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
     try:
-        bot.send_message(ADMIN_ID, f"New user started the bot: {message.chat.id}")
+        bot.send_message(ADMIN_ID, f"New user: {message.chat.id}")
     except Exception as e:
         print(f"Failed to send alert to admin: {e}")
 
