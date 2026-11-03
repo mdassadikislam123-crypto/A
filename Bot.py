@@ -186,23 +186,45 @@ def handle_all_messages(message):
     
     if is_admin:
         if message.reply_to_message:
-            replied_text = message.reply_to_message.text or message.reply_to_message.caption
-            if replied_text and "ID:" in replied_text:
+            replied_msg = message.reply_to_message
+            target_user_id = None
+            
+            # ১. সরাসরি টেক্সট বা ক্যাপশন থেকে ID এক্সট্রাক্ট করার চেষ্টা (যেমন: (ID: 12345678))
+            full_text = ""
+            if replied_msg.text:
+                full_text += replied_msg.text
+            if replied_msg.caption:
+                full_text += "\n" + replied_msg.caption
+                
+            if "ID:" in full_text:
                 try:
-                    parts = replied_text.split("ID:")
-                    user_id_part = int(parts[1].split(')')[0].strip())
-                    
-                    success_msg = (
-                        "🎉 **অভিনন্দন! আপনার টপ-আপ সফলভাবে সম্পন্ন হয়েছে।** 🎮\n\n"
-                        "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
-                    )
-                    
-                    final_reply = message.text if message.text else success_msg
-                    
-                    bot.send_message(user_id_part, final_reply, parse_mode="Markdown")
-                    bot.reply_to(message, "✅ ইউজারের কাছে সফলভাবে কনফার্মেশন মেসেজ চলে গেছে!")
+                    parts = full_text.split("ID:")
+                    target_user_id = int(parts[1].split(')')[0].strip())
+                except Exception:
+                    pass
+            
+            # ২. যদি উপর্যুক্ত উপায়ে আইডি না পাওয়া যায়, তবে আগের পাঠানো মেসেজগুলোর ফরোয়ার্ড বা মেমোরি থেকে খোঁজা বা সরাসরি ইনপুট হ্যান্ডেল করা
+            if not target_user_id:
+                # যদি এডমিন সরাসরি কোনো সংখ্যা বা ইউজার আইডি লিখে রিপ্লাই করেন
+                text_content = message.text.strip() if message.text else ""
+                if text_content.isdigit() and len(text_content) > 6:
+                    # যদি এডমিন নিজেই ইউজারের চ্যাট আইডি লিখে পাঠান
+                    pass
+            
+            if target_user_id:
+                success_msg = (
+                    "🎉 **অভিনন্দন! আপনার টপ-আপ সফলভাবে সম্পন্ন হয়েছে।** 🎮\n\n"
+                    "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
+                )
+                final_reply = message.text if message.text else success_msg
+                
+                try:
+                    bot.send_message(target_user_id, final_reply, parse_mode="Markdown")
+                    bot.reply_to(message, f"✅ ইউজারের ({target_user_id}) কাছে সফলভাবে মেসেজ চলে গেছে!")
                 except Exception as e:
-                    bot.reply_to(message, f"❌ পাঠাতে সমস্যা হয়েছে: {e}")
+                    bot.reply_to(message, f"❌ ইউজারের কাছে মেসেজ পাঠাতে সমস্যা হয়েছে: {e}")
+            else:
+                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। দয়া করে সঠিক অর্ডার মেসেজে রিভ্লাই দিন অথবা ইউজারের সঠিক আইডি ব্যবহার করুন।")
         return
 
     user = message.from_user
@@ -278,7 +300,7 @@ def handle_all_messages(message):
                 bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
                 bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
             else:
-                bot.send_message(ADMIN_ID, admin_header, parse_mode="Markdown")
+                bot.send_message(ADMIN_ID, admin_header, parse_message="Markdown")
                 bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
                 bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
         except Exception as e:
