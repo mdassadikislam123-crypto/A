@@ -141,13 +141,13 @@ def callback_query(call):
                 text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:",
                 chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown"
             )
-        except Exception:
-            pass
+        except Exception as e:
+            bot.send_message(chat_id, f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:", reply_markup=markup)
     elif call.data.startswith("pay_"):
         payment_method = call.data.split('_')[1]
         if chat_id not in user_orders:
-            bot.answer_callback_query(call.id, "সেশন শেষ হয়ে গেছে। আবার শুরু করুন।")
-            return
+            user_orders[chat_id] = {"package": {"name": "প্যাকেজ", "price": "নির্দিষ্ট পরিমাণ"}}
+            
         method_name = "বিকাশ" if payment_method == "bkash" else "রকেট"
         dial_code = "*247#" if payment_method == "bkash" else "*322#"
         acc_number = PAYMENT_NUMBERS[payment_method]
@@ -167,7 +167,8 @@ def callback_query(call):
         try:
             bot.edit_message_text(text=text, chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         except Exception:
-            pass
+            bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
+        bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
 def handle_all_messages(message):
