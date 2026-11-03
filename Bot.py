@@ -108,6 +108,7 @@ def callback_query(call):
     except Exception:
         pass
 
+    # Admin reply handling
     if chat_id == ADMIN_ID and call.data.startswith("admin_reply_"):
         parts = call.data.split('_', 3)
         action = parts[2]
@@ -130,16 +131,20 @@ def callback_query(call):
             print(f"Admin reply error: {e}")
         return
 
+    # Back to menu
     if call.data == "back_to_menu":
         user_states.pop(chat_id, None)
         user_orders.pop(chat_id, None)
         show_main_menu(chat_id, call.message.message_id)
         return
 
+    # Payment method selection (bkash / rocket) - Enhanced safety check
     if call.data.startswith("pay_"):
         payment_method = call.data.split('_')[1]
-        if chat_id not in user_orders:
-            user_orders[chat_id] = {"package": {"name": "প্যাকেজ", "price": "নির্দিষ্ট পরিমাণ"}}
+        
+        # যদি কোনো কারণে মেমোরি থেকে অর্ডার মুছেও যায়, তবুও ডিফল্ট ভ্যালু সেট করে ফ্লো চালু রাখবে
+        if chat_id not in user_orders or "package" not in user_orders[chat_id]:
+            user_orders[chat_id] = {"package": {"name": "সিলেক্টেড প্যাকেজ", "price": "নির্দিষ্ট পরিমাণ"}}
             
         method_name = "বিকাশ" if payment_method == "bkash" else "রকেট"
         dial_code = "*247#" if payment_method == "bkash" else "*322#"
@@ -155,21 +160,26 @@ def callback_query(call):
                 f"📌 পার্সোনাল নম্বর: {acc_number}\n"
                 f"📌 পরিমাণ: {selected_package['price']}\n\n"
                 f"📥 টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।")
+        
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        
         try:
             bot.edit_message_text(text=text, chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
         except Exception:
             bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
         return
 
+    # Package selection
     if call.data in packages:
         selected_package = packages[call.data]
         user_orders[chat_id] = {"package": selected_package}
+        
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("বিকাশ", callback_data="pay_bkash"))
         markup.add(InlineKeyboardButton("রকেট", callback_data="pay_rocket"))
         markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        
         try:
             bot.edit_message_text(
                 text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:",
