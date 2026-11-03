@@ -169,10 +169,11 @@ def callback_query(call):
         user_orders[chat_id]["method"] = method_name
         user_states[chat_id] = "WAITING_FOR_TRX"
         
-        text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে **{method_name}** সিলেক্ট করেছেন。\n\n"
+        text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে **{method_name}** সিলেক্ট করেছেন।\n\n"
                 f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
                 f"📌 **{method_name} (Personal):** `{acc_number}`\n\n"
-                f"📥 **ধাপ ৩: টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।**")
+                f"⚠️ **বিশেষ দ্রষ্টব্য: এটি একটি পার্সোনাল অ্যাকাউন্ট।**\n\n"
+                f"📥 **ধাপ ৩: টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) এবং পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।**")
         
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
@@ -219,9 +220,9 @@ def handle_all_messages(message):
                     bot.send_message(target_user_id, final_reply, parse_mode="Markdown")
                     bot.reply_to(message, f"✅ ইউজারের ({target_user_id}) কাছে সফলভাবে মেসেজ চলে গেছে!")
                 except Exception as e:
-                    bot.reply_to(message, f"❌ ইউজারের কাছে মেসেজ পাঠাতে সমস্যা হয়েছে: {e}")
+                    bot.reply_to(message, f" পাঠাতে সমস্যা হয়েছে: {e}")
             else:
-                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। সঠিক অর্ডার নোটিফিকেশনে রিপ্লাই দিন।")
+                bot.reply_to(message, "ারের আইডি শনাক্ত করা যায়নি। সঠিক অর্ডার নোটিফিকেশনে রিপ্লাই দিন।")
         return
 
     user = message.from_user
@@ -235,7 +236,7 @@ def handle_all_messages(message):
             return
             
         if not message.text:
-            bot.reply_to(message, "❌ দয়া করে আপনার গেম UID টেক্সট আকারে লিখে পাঠান।")
+            bot.reply_to(message, " গেম UID টেক্সট আকারে লিখে পাঠান।")
             return
 
         uid = message.text.strip()
@@ -256,8 +257,7 @@ def handle_all_messages(message):
 
     elif current_state == "WAITING_FOR_TRX":
         if chat_id not in user_orders:
-            # যদি কোনো কারণে ডিকশনারিতে অর্ডার না থাকে, তবে আগের UID বা ডিফল্ট তথ্য দিয়ে রিকভার করে নেওয়া বা সেশন রিফ্রেশ করা
-            user_orders[chat_id] = {"package": {"name": "টপ-আপ প্যাকেজ", "price": ""}, "uid": "N/A", "method": "বিকাশ/রকেট"}
+            user_orders[chat_id] = {"package": {"name": "অজানা প্যাকেজ", "price": ""}, "uid": "N/A", "method": "N/A"}
 
         photo_id = None
         trx_text = "N/A"
@@ -292,7 +292,7 @@ def handle_all_messages(message):
         admin_markup = InlineKeyboardMarkup()
         admin_markup.row(
             InlineKeyboardButton("❌ ভুল TrxID", callback_data=f"admin_reply_wrongtrx_{chat_id}"),
-            InlineKeyboardButton("🔍 খুঁজে পাওয়া যায়নি", callback_data=f"admin_reply_notfound_{chat_id}")
+            InlineKeyboardButton("🔍 খুঁজ পাওয়া যায়নি", callback_data=f"admin_reply_notfound_{chat_id}")
         )
         admin_markup.add(InlineKeyboardButton("✅ পেমেন্ট সঠিক আছে", callback_data=f"admin_reply_success_{chat_id}"))
 
