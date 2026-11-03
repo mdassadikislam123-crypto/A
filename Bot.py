@@ -14,7 +14,6 @@ WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1'
 ADMIN_TELEGRAM = 'https://t.me/ownerastopupup'
 bot = telebot.TeleBot(API_TOKEN)
 
-# রেন্ডার সার্ভার সচল রাখার জন্য ফ্লাস্ক সার্ভার
 app = Flask(__name__)
 
 @app.route('/')
@@ -31,12 +30,9 @@ def webhook():
     else:
         return "Invalid request", 403
 
-# ডিকশনারি ও সেটসমূহ
 user_states = {}
 user_orders = {}
 notified_users = set()
-
-# চলমান অর্ডারগুলো সঠিকভাবে ট্র্যাক করার জন্য গ্লোবাল স্টোর (Admin Reply Fix)
 active_orders = {}
 
 PAYMENT_NUMBERS = {
@@ -47,7 +43,7 @@ PAYMENT_NUMBERS = {
 packages = {
     "pack1": {"name": "💎 ২৫ ডায়মন্ড", "price": "২১ TK"},
     "pack2": {"name": "💎 ৫০ ডায়মন্ড", "price": "৩৬ TK"},
-    "pack3": {"name": "💎 ১১ ৫ম ডায়মন্ড", "price": "৭৬ TK"},
+    "pack3": {"name": "💎 ১১৫ ডায়মন্ড", "price": "৭৬ TK"},
     "pack4": {"name": "💎 ২৪০ ডায়মন্ড", "price": "১৫৩ TK"},
     "pack5": {"name": "💎 ৬১০ ডায়মন্ড", "price": "৩৮০ TK"},
     "pack6": {"name": "💎 ১২৫০ ডায়মন্ড", "price": "৭৭০ TK"},
@@ -112,6 +108,30 @@ def payment_rate(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
+    
+    # অ্যাডমিনের জন্য কুইক রিপ্লাই ইনলাইন বাটন হ্যান্ডলিং
+    if chat_id == ADMIN_ID and call.data.startswith("admin_reply_"):
+        parts = call.data.split('_', 3)
+        action = parts[2] 
+        target_user_id = int(parts[3])
+        
+        # আপনার পছন্দমতো সুন্দর ইমোজিসহ সাজানো মেসেজগুলো
+        response_texts = {
+            "wrongtrx": "❌ দুঃখিত! আপনার ট্রানজেকশন আইডিটি ভুল হয়েছে। দয়া করে আপনার সঠিক ট্রানজেকশন আইডিটি আবার দিন। 🔄",
+            "notfound": "⚠️ দুঃখিত! আপনার ট্রানজেকশন আইডিটি এই মুহূর্তে খুঁজে পাওয়া যাচ্ছে না। দয়া করে সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন। 🔍",
+            "success": "✅ অভিনন্দন! আপনার পেমেন্টটি সফলভাবে সম্পন্ন হয়েছে এবং সঠিক পাওয়া গেছে। আপনার অর্ডারটি প্রসেস করা হচ্ছে! 🎉❤️"
+        }
+        
+        reply_text = response_texts.get(action, "স্ট্যাটাস আপডেট করা হয়েছে।")
+        
+        try:
+            bot.send_message(target_user_id, reply_text, parse_mode="Markdown")
+            bot.answer_callback_query(call.id, "✅ ইউজারের কাছে সফলভাবে মেসেজ পাঠানো হয়েছে!")
+            bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+        except Exception as e:
+            bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
+        return
+
     if call.data == "back_to_menu":
         user_states.pop(chat_id, None)
         user_orders.pop(chat_id, None)
@@ -163,24 +183,20 @@ def handle_all_messages(message):
     chat_id = message.chat.id
     is_admin = (chat_id == ADMIN_ID)
     
-    # ----------------- এডমিন প্যানেল হ্যান্ডলিং -----------------
     if is_admin:
         if message.reply_to_message:
             replied_msg = message.reply_to_message
             target_user_id = None
             
-            # ১. প্রথমে একটিভ অর্ডার ডিকশনারি থেকে খোঁজার চেষ্টা করবে (সবচেয়ে নির্ভরযোগ্য পদ্ধতি)
             if replied_msg.message_id in active_orders:
                 target_user_id = active_orders[replied_msg.message_id]
             else:
-                # ২. যদি ডিকশনারিতে না থাকে, তবে মেসেজ টেক্সট থেকে রেগুলার এক্সপ্রেশন দিয়ে আইডি বের করার চেষ্টা করবে
                 full_text = ""
                 if replied_msg.text:
                     full_text += replied_msg.text
                 if replied_msg.caption:
                     full_text += "\n" + replied_msg.caption
                 
-                # ফ্লেক্সিবল ম্যাচিং (ID: 123456 বা (ID: 123456) উভয় ফরম্যাট রিড করবে)
                 match = re.search(r'(?:ID[:\s]*|chat_id[:\s]*)(\d{5,15})', full_text, re.IGNORECASE)
                 if match:
                     try:
@@ -201,10 +217,9 @@ def handle_all_messages(message):
                 except Exception as e:
                     bot.reply_to(message, f"❌ ইউজারের কাছে মেসেজ পাঠাতে সমস্যা হয়েছে: {e}")
             else:
-                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। দয়া করে সঠিক অর্ডার নোটিফিকেশনে রিপ্লাই দিন।")
+                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। সঠিক অর্ডার নোটিফিকেশনে রিপ্লাই দিন।")
         return
 
-    # ----------------- সাধারণ ইউজার হ্যান্ডলিং -----------------
     user = message.from_user
     user_info = f"@{user.username}" if user.username else f"{user.first_name} (ID: {user.id})"
     current_state = user_states.get(chat_id)
@@ -232,7 +247,7 @@ def handle_all_messages(message):
         return
 
     elif current_state == "WAITING_FOR_PAYMENT_METHOD":
-        bot.reply_to(message, "দয়া করে নিচের বাটন থেকে আপনার পেমেন্ট মেথড (বিকাশ বা রকেট) সিলেক্ট করুন।")
+        bot.reply_to(message, "দয়া করে নিচের বাটন থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন।")
         return
 
     elif current_state == "WAITING_FOR_TRX":
@@ -250,7 +265,7 @@ def handle_all_messages(message):
         elif message.text:
             trx_text = message.text.strip()
             if len(trx_text) < 4:
-                bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে আপনার সঠিক TrxID লিখে পাঠান।")
+                bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে সঠিক TrxID লিখে পাঠান।")
                 return
         
         user_orders[chat_id]["trx"] = trx_text
@@ -271,6 +286,14 @@ def handle_all_messages(message):
         trx_msg = f"🔤 TrxID:\n`{trx_text}`"
         uid_msg = f"🆔 গেম UID:\n`{uid}` (ID: {chat_id})"
         
+        # অ্যাডমিনের জন্য নতুন ও সুন্দর কুইক রেসপন্স বাটন
+        admin_markup = InlineKeyboardMarkup()
+        admin_markup.row(
+            InlineKeyboardButton("❌ ভুল TrxID", callback_data=f"admin_reply_wrongtrx_{chat_id}"),
+            InlineKeyboardButton("🔍 খুঁজ পাওয়া যায়নি", callback_data=f"admin_reply_notfound_{chat_id}")
+        )
+        admin_markup.add(InlineKeyboardButton("✅ পেমেন্ট সঠিক আছে", callback_data=f"admin_reply_success_{chat_id}"))
+
         try:
             sent_msg1 = None
             sent_msg2 = None
@@ -279,13 +302,12 @@ def handle_all_messages(message):
             if photo_id:
                 sent_msg1 = bot.send_photo(ADMIN_ID, photo_id, caption=admin_header, parse_mode="Markdown")
                 sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
-                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
+                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, reply_markup=admin_markup, parse_mode="Markdown")
             else:
                 sent_msg1 = bot.send_message(ADMIN_ID, admin_header, parse_mode="Markdown")
                 sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
-                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
+                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, reply_markup=admin_markup, parse_mode="Markdown")
             
-            # অ্যাডমিনের পাঠানো প্রতিটি মেসেজের সাথে ইউজারের আসল চ্যাট আইডি ম্যাপ করে রাখা হলো
             if sent_msg1: active_orders[sent_msg1.message_id] = chat_id
             if sent_msg2: active_orders[sent_msg2.message_id] = chat_id
             if sent_msg3: active_orders[sent_msg3.message_id] = chat_id
