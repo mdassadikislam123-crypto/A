@@ -46,7 +46,7 @@ packages = {
     "pack6": {"name": "💎 ১২৫০ ডায়মন্ড", "price": "৭৭০ TK"},
     "pack7": {"name": "weekly membership", "price": "১৫০ TK"},
     "pack8": {"name": "Monthly membership", "price": "৭৬০ TK"},
-    "pack9": {"name": "২০০০ Unipin out ofstok", "price": "১৬৯০ TK"}
+    "pack9": {"name": "🔴 ২০০০ Unipin (Out of Stock)", "price": "১৬৯০ TK"}
 }
 
 def show_main_menu(chat_id, message_id=None):
@@ -94,8 +94,8 @@ def payment_rate(message):
     text = (
         "💳 পেমেন্ট মেথড (Payment Method):\n"
         "আমাদের বিকাশ বা রকেট পার্সোনাল নম্বরে টাকা পাঠান:\n"
-        "• বিকাশ (Personal): 01820313593\n"
-        "• রকেট (Personal): 01820313593\n"
+        "• বিকাশ (Personal): 01820313593 (*247# ডায়াল করে Send Money করুন)\n"
+        "• রকেট (Personal): 01820313593 (*322# ডায়াল করে Send Money করুন)\n"
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
@@ -106,21 +106,21 @@ def callback_query(call):
         parts = call.data.split('_', 3)
         action = parts[2]
         target_user_id = int(parts[3])
-        response_texts = {
-            "wrongtrx": "❌ আপনার ট্রানজেকশন আইডিটি ভুল হয়েছে। দয়া করে আপনার সঠিক ট্রানজেকশন আইডিটি আবার দিন। 🔄",
-            "notfound": "⚠️ দুঃখিত! আপনার ট্রানজেকশন আইডিটি এই মুহূর্তে খুঁজে পাওয়া যাচ্ছে না। দয়া করে সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন। 🔍",
-            "success": "✅ অভিনন্দন! আপনার পেমেন্টটি সফলভাবে সম্পন্ন হয়েছে এবং সঠিক পাওয়া গেছে। আপনার অর্ডারটি প্রসেস করা হচ্ছে! 🎉❤️"
-        }
-        reply_text = response_texts.get(action, "স্ট্যাটাস আপডেট করা হয়েছে।")
+        
+        if action == "wrongtrx":
+            reply_text = "❌ আপনার ট্রানজেকশন আইডিটি ভুল হয়েছে। দয়া করে আপনার সঠিক ট্রানজেকশন আইডিটি আবার দিন। 🔄"
+            user_states[target_user_id] = "WAITING_FOR_TRX"
+        elif action == "notfound":
+            reply_text = "⚠️ দুঃখিত! আপনার ট্রানজেকশন আইডিটি এই মুহূর্তে খুঁজে পাওয়া যাচ্ছে না। দয়া করে সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন। 🔍"
+            user_states[target_user_id] = "WAITING_FOR_TRX"
+        elif action == "success":
+            reply_text = "✅ আপনার পেমেন্টটি সফলভাবে সম্পন্ন হয়েছে এবং সঠিক পাওয়া গেছে! 🎉\n\n📌 এখন আপনার গেম ইউআইডি (UID) টি লিখে পাঠান:"
+            user_states[target_user_id] = "WAITING_FOR_UID"
+
         try:
             bot.send_message(target_user_id, reply_text, parse_mode="Markdown")
-            bot.answer_callback_query(call.id, "✅ ইউজারের কাছে সফলভাবে মেসেজ পাঠানো হয়েছে!")
+            bot.answer_callback_query(call.id, "✅ ইউজারের কাছে মেসেজ পাঠানো হয়েছে!")
             bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
-            if action == "success":
-                user_states.pop(target_user_id, None)
-                user_orders.pop(target_user_id, None)
-            else:
-                user_states[target_user_id] = "WAITING_FOR_TRX"
         except Exception as e:
             bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
         return
@@ -131,13 +131,14 @@ def callback_query(call):
         show_main_menu(chat_id, call.message.message_id)
     elif call.data in packages:
         selected_package = packages[call.data]
-        user_states[chat_id] = "WAITING_FOR_UID"
         user_orders[chat_id] = {"package": selected_package}
         markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("বিকাশ", callback_data="pay_bkash"))
+        markup.add(InlineKeyboardButton("রকেট", callback_data="pay_rocket"))
         markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
         try:
             bot.edit_message_text(
-                text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} ({selected_package['price']}).\n\n📌 ধাপ ১: এখন আপনার গেম ইউআইডি (UID) টি লিখে পাঠান:",
+                text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:",
                 chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown"
             )
         except Exception:
@@ -148,14 +149,19 @@ def callback_query(call):
             bot.answer_callback_query(call.id, "সেশন শেষ হয়ে গেছে। আবার শুরু করুন।")
             return
         method_name = "বিকাশ" if payment_method == "bkash" else "রকেট"
+        dial_code = "*247#" if payment_method == "bkash" else "*322#"
         acc_number = PAYMENT_NUMBERS[payment_method]
+        selected_package = user_orders[chat_id]["package"]
+        
         user_orders[chat_id]["method"] = method_name
         user_states[chat_id] = "WAITING_FOR_TRX"
-        text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে {method_name} সিলেক্ট করেছেন।\n\n"
-                f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
-                f"📌 {method_name} (Personal): {acc_number}\n\n"
-                f"⚠️ বিশেষ দ্রষ্টব্য: এটি একটি পার্সোনাল অ্যাকাউন্ট।\n\n"
-                f"📥 ধাপ ৩: টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) এবং পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।")
+        
+        text = (f"আপনি সিলেক্ট করেছেন: {selected_package['name']} ({selected_package['price']})\n\n"
+                f"💳 পেমেন্ট মাধ্যম: {method_name}\n"
+                f"📌 প্রথমে আপনার মোবাইলে {dial_code} ডায়াল করে Send Money অপশন সিলেক্ট করুন।\n"
+                f"📌 পার্সোনাল নম্বর: {acc_number}\n"
+                f"📌 পরিমাণ: {selected_package['price']}\n\n"
+                f"📥 টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।")
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
         try:
@@ -186,11 +192,7 @@ def handle_all_messages(message):
                     except Exception:
                         pass
             if target_user_id:
-                success_msg = (
-                    "🎉 অভিনন্দন! আপনার টপ-আপ সফলভাবে সম্পন্ন হয়েছে। 🎮\n\n"
-                    "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
-                )
-                final_reply = message.text if message.text else success_msg
+                final_reply = message.text
                 try:
                     bot.send_message(target_user_id, final_reply, parse_mode="Markdown")
                     bot.reply_to(message, f"✅ ইউজারের ({target_user_id}) কাছে সফলভাবে মেসেজ চলে গেছে!")
@@ -204,31 +206,9 @@ def handle_all_messages(message):
     user_info = f"@{user.username}" if user.username else f"{user.first_name} (ID: {user.id})"
     current_state = user_states.get(chat_id)
 
-    if current_state == "WAITING_FOR_UID":
+    if current_state == "WAITING_FOR_TRX":
         if chat_id not in user_orders:
-            bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
-            user_states.pop(chat_id, None)
-            return
-        if not message.text:
-            bot.reply_to(message, "❌ দয়া করে আপনার গেম UID টেক্সট আকারে লিখে পাঠান।")
-            return
-        uid = message.text.strip()
-        user_orders[chat_id]["uid"] = uid
-        user_states[chat_id] = "WAITING_FOR_PAYMENT_METHOD"
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("বিকাশ", callback_data="pay_bkash"))
-        markup.add(InlineKeyboardButton("রকেট", callback_data="pay_rocket"))
-        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
-        bot.reply_to(message, f"✅ গেম UID ({uid}) সফলভাবে গ্রহণ করা হয়েছে।\n\n📌 ধাপ ২: আপনার পেমেন্ট মেথড সিলেক্ট করুন:", reply_markup=markup, parse_mode="Markdown")
-        return
-
-    elif current_state == "WAITING_FOR_PAYMENT_METHOD":
-        bot.reply_to(message, "দয়া করে নিচের বাটন থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন।")
-        return
-
-    elif current_state == "WAITING_FOR_TRX":
-        if chat_id not in user_orders:
-            user_orders[chat_id] = {"package": {"name": "অজানা প্যাকেজ", "price": ""}, "uid": "N/A", "method": "N/A"}
+            user_orders[chat_id] = {"package": {"name": "অজানা প্যাকেজ", "price": ""}, "method": "N/A"}
         
         photo_id = None
         trx_text = "N/A"
@@ -238,7 +218,7 @@ def handle_all_messages(message):
         elif message.text:
             trx_text = message.text.strip()
             
-        if len(trx_text) < 4:
+        if len(trx_text) < 4 and not photo_id:
             bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে সঠিক TrxID লিখে পাঠান।")
             return
             
@@ -247,16 +227,14 @@ def handle_all_messages(message):
         order_info = user_orders[chat_id]
         selected_package = order_info.get("package", {"name": "অজানা", "price": ""})
         method_name = order_info.get("method", "N/A")
-        uid = order_info.get("uid", "N/A")
 
-        bot.reply_to(message, "⏳ আপনার ট্রানজেকশন আইডি এবং গেম UID যাচাই করা হচ্ছে...\n\n🕒 দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন, আপনার অর্ডারটি সফলভাবে চেক করে দ্রুত আপনার ইন-গেমে অ্যাড করা হবে।")
+        bot.reply_to(message, "⏳ আপনার ট্রানজেকশন আইডি এডমিনের কাছে পাঠানো হয়েছে...\n\n🕒 দয়া করে এডমিন পেমেন্ট ভেরিফাই করা পর্যন্ত অপেক্ষা করুন।")
 
         admin_header = (f"🔔 নতুন অর্ডার যাচাইয়ের জন্য এসেছে!\n\n"
                         f"👤 ক্রেতা: {user_info}\n"
                         f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
                         f"💳 মাধ্যম: {method_name}")
-        trx_msg = f"🔤 TrxID:\n{trx_text}"
-        uid_msg = f"🆔 গেম UID:\n{uid} (ID: {chat_id})"
+        trx_msg = f"🔤 TrxID / তথ্য:\n{trx_text}\n(ID: {chat_id})"
 
         admin_markup = InlineKeyboardMarkup()
         admin_markup.row(
@@ -268,22 +246,39 @@ def handle_all_messages(message):
         try:
             sent_msg1 = None
             sent_msg2 = None
-            sent_msg3 = None
             if photo_id:
                 sent_msg1 = bot.send_photo(ADMIN_ID, photo_id, caption=admin_header, parse_mode="Markdown")
-                sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
-                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, reply_markup=admin_markup, parse_mode="Markdown")
+                sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, reply_markup=admin_markup, parse_mode="Markdown")
             else:
                 sent_msg1 = bot.send_message(ADMIN_ID, admin_header, parse_mode="Markdown")
-                sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
-                sent_msg3 = bot.send_message(ADMIN_ID, uid_msg, reply_markup=admin_markup, parse_mode="Markdown")
+                sent_msg2 = bot.send_message(ADMIN_ID, trx_msg, reply_markup=admin_markup, parse_mode="Markdown")
 
             if sent_msg1: active_orders[sent_msg1.message_id] = chat_id
             if sent_msg2: active_orders[sent_msg2.message_id] = chat_id
-            if sent_msg3: active_orders[sent_msg3.message_id] = chat_id
         except Exception as e:
             print(f"Forward order failed: {e}")
             bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+        return
+
+    elif current_state == "WAITING_FOR_UID":
+        if not message.text:
+            bot.reply_to(message, "❌ দয়া করে আপনার গেম UID টেক্সট আকারে লিখে পাঠান।")
+            return
+        uid = message.text.strip()
+        user_orders[chat_id]["uid"] = uid
+        user_states.pop(chat_id, None)
+
+        bot.reply_to(
+            message,
+            f"✅ গেম UID ({uid}) সফলভাবে গ্রহণ করা হয়েছে।\n\n"
+            f"🕒 দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন, আপনার অর্ডারটি সফলভাবে প্রসেস করে ইন-গেমে অ্যাড করা হবে। ❤️"
+        )
+
+        try:
+            selected_package = user_orders.get(chat_id, {}).get("package", {"name": "অজানা", "price": ""})
+            bot.send_message(ADMIN_ID, f"📥 ইউজার UID প্রদান করেছে!\n👤 ইউজার: {user_info}\n🆔 গেম UID: `{uid}`\n📦 প্যাকেজ: {selected_package.get('name')}", parse_mode="Markdown")
+        except Exception as e:
+            print(f"Failed sending UID alert: {e}")
         return
     else:
         bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
