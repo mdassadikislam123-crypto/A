@@ -102,6 +102,8 @@ def payment_rate(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
+    
+    # Admin reply actions
     if chat_id == ADMIN_ID and call.data.startswith("admin_reply_"):
         parts = call.data.split('_', 3)
         action = parts[2]
@@ -125,28 +127,19 @@ def callback_query(call):
             bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
         return
 
+    # Back to menu
     if call.data == "back_to_menu":
         user_states.pop(chat_id, None)
         user_orders.pop(chat_id, None)
         show_main_menu(chat_id, call.message.message_id)
-    elif call.data in packages:
-        selected_package = packages[call.data]
-        user_orders[chat_id] = {"package": selected_package}
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("বিকাশ", callback_data="pay_bkash"))
-        markup.add(InlineKeyboardButton("রকেট", callback_data="pay_rocket"))
-        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
-        try:
-            bot.edit_message_text(
-                text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:",
-                chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown"
-            )
-        except Exception as e:
-            bot.send_message(chat_id, f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:", reply_markup=markup)
-    elif call.data.startswith("pay_"):
+        bot.answer_callback_query(call.id)
+        return
+
+    # Payment method selection (bkash / rocket)
+    if call.data.startswith("pay_"):
         payment_method = call.data.split('_')[1]
         if chat_id not in user_orders:
-            user_orders[chat_id] = {"package": {"name": "প্যাকেজ", "price": "নির্দিষ্ট পরিমাণ"}}
+            user_orders[chat_id] = {"package": {"name": "সিলেক্টেড প্যাকেজ", "price": "নির্দিষ্ট পরিমাণ"}}
             
         method_name = "বিকাশ" if payment_method == "bkash" else "রকেট"
         dial_code = "*247#" if payment_method == "bkash" else "*322#"
@@ -169,6 +162,25 @@ def callback_query(call):
         except Exception:
             bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
         bot.answer_callback_query(call.id)
+        return
+
+    # Package selection
+    if call.data in packages:
+        selected_package = packages[call.data]
+        user_orders[chat_id] = {"package": selected_package}
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("বিকাশ", callback_data="pay_bkash"))
+        markup.add(InlineKeyboardButton("রকেট", callback_data="pay_rocket"))
+        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        try:
+            bot.edit_message_text(
+                text=f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:",
+                chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown"
+            )
+        except Exception:
+            bot.send_message(chat_id, f"আপনি সিলেক্ট করেছেন: {selected_package['name']} - দাম: {selected_package['price']}\n\n📌 পেমেন্ট করার মেথড সিলেক্ট করুন:", reply_markup=markup)
+        bot.answer_callback_query(call.id)
+        return
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
 def handle_all_messages(message):
