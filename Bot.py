@@ -4,7 +4,7 @@ import time
 import threading
 from flask import Flask
 
-API_TOKEN = '8973617780:AAFKLBNjUD98PAh2FxWeSn9yi8oovEUN4y4'
+API_TOKEN = '8973617780:AAGObYqffLwVJqn3uKjp2LH0QQqUiTMHMcc'
 
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
