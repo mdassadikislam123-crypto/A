@@ -4,13 +4,16 @@ import time
 import threading
 from flask import Flask
 
+# আপনার টেলিগ্রাম বট টোকেন
 API_TOKEN = '8973617780:AAGObYqffLwVJqn3uKjp2LH0QQqUiTMHMcc'
 
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
 
-WHATSAPP_LINK = 'https://wa.me https://wa.me/message/25RTDSJ2EXQ7E1'  # WhatsApp লিংক
-ADMIN_TELEGRAM = 'https://t.me @ownerastopup' # টেলিগ্রাম প্রোফাইল লিংক
+# সঠিক ফরম্যাটে লিংকসমূহ
+WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1'  
+ADMIN_TELEGRAM = 'https://t.me/ownerastopup' 
+
 bot = telebot.TeleBot(API_TOKEN)
 
 # ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
@@ -57,7 +60,7 @@ packages = {
     "pack8": {"name": "২০০০ Unipin", "price": "১৬৯০ TK"}
 }
 
-# --- Flask Server (স্লিপ মোড রোধ করার জন্য) ---
+# --- Flask Server (রেন্ডার বা অন্যান্য হোস্টিংয়ের স্লিপ মোড রোধ করার জন্য) ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -65,10 +68,11 @@ def home():
     return "Bot is running and active!"
 
 def run_flask():
+    # পোর্ট ৮০৮০ তে ফ্লাস্ক সার্ভার রান করবে
     app.run(host='0.0.0.0', port=8080)
 # ---------------------------------------------
 
-# ১. প্রথম কমান্ড: স্টার্ট (ইন্দ্রো ও মেইন অপশন মেনু)
+# ১. প্রথম কমান্ড: স্টার্ট (ইনট্রো ও মেইন অপশন মেনু)
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_states.pop(message.chat.id, None)
@@ -175,8 +179,8 @@ def callback_query(call):
         target_user_id = int(parts[3])
         
         success_msg = (
-            "🎉 **অভিনন্দন! আপনার পেমেন্ট সফলভাবে সম্পন্ন হয়েছে এবং টপ-আপ দেওয়া হয়েছে।** 🎮\n\n"
-            "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
+            "✅ **আপনার পেমেন্ট সফলভাবে যাচাই করা হয়েছে!** 🎉\n\n"
+            "দয়া করে আপনার সঠিক গেম ইউআইডি (Game UID) এই চ্যাটে লিখে পাঠিয়ে দিন, যেন টপ-আপ দেওয়া যায়:"
         )
         
         not_found_msg = (
@@ -186,11 +190,10 @@ def callback_query(call):
         
         if action == "success":
             final_reply = success_msg
-            user_states.pop(target_user_id, None)
-            user_orders.pop(target_user_id, None)
+            user_states[target_user_id] = "WAITING_FOR_UID"  # পেমেন্ট ঠিক থাকলে UID চাওয়ার স্টেপে নেওয়া হলো
         else:
             final_reply = not_found_msg
-            user_states[target_user_id] = "WAITING_FOR_TRX"
+            user_states[target_user_id] = "WAITING_FOR_TRX"  # ভুল হলে আবার ট্রানজেকশন চাইবে
         
         try:
             bot.send_message(target_user_id, final_reply, parse_mode="Markdown")
@@ -362,6 +365,7 @@ def handle_all_messages(message):
             print(f"Forward UID failed: {e}")
             bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
             
+        # কাজ শেষ, তাই ইউজারের ডাটা ক্লিয়ার করে দেওয়া হলো
         user_states.pop(chat_id, None)
         user_orders.pop(chat_id, None)
         return
