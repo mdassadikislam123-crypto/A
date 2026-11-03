@@ -12,6 +12,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(name)
 @app.route('/')
 def home():
+
 return "Bot is running successfully!"
 @app.route(f'/{API_TOKEN}', methods=['POST'])
 def webhook():
