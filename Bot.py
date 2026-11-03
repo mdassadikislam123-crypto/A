@@ -164,8 +164,6 @@ def callback_query(call):
         user_orders[chat_id]["method"] = method_name
         user_states[chat_id] = "WAITING_FOR_TRX"
         
-        selected_package = user_orders[chat_id]["package"]
-        
         text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে **{method_name}** সিলেক্ট করেছেন।\n\n"
                 f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
                 f"📌 **{method_name} (Personal):** `{acc_number}`\n\n"
@@ -189,7 +187,6 @@ def handle_all_messages(message):
             replied_msg = message.reply_to_message
             target_user_id = None
             
-            # ১. সরাসরি টেক্সট বা ক্যাপশন থেকে ID এক্সট্রাক্ট করার চেষ্টা (যেমন: (ID: 12345678))
             full_text = ""
             if replied_msg.text:
                 full_text += replied_msg.text
@@ -201,14 +198,6 @@ def handle_all_messages(message):
                     parts = full_text.split("ID:")
                     target_user_id = int(parts[1].split(')')[0].strip())
                 except Exception:
-                    pass
-            
-            # ২. যদি উপর্যুক্ত উপায়ে আইডি না পাওয়া যায়, তবে আগের পাঠানো মেসেজগুলোর ফরোয়ার্ড বা মেমোরি থেকে খোঁজা বা সরাসরি ইনপুট হ্যান্ডেল করা
-            if not target_user_id:
-                # যদি এডমিন সরাসরি কোনো সংখ্যা বা ইউজার আইডি লিখে রিপ্লাই করেন
-                text_content = message.text.strip() if message.text else ""
-                if text_content.isdigit() and len(text_content) > 6:
-                    # যদি এডমিন নিজেই ইউজারের চ্যাট আইডি লিখে পাঠান
                     pass
             
             if target_user_id:
@@ -224,7 +213,7 @@ def handle_all_messages(message):
                 except Exception as e:
                     bot.reply_to(message, f"❌ ইউজারের কাছে মেসেজ পাঠাতে সমস্যা হয়েছে: {e}")
             else:
-                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। দয়া করে সঠিক অর্ডার মেসেজে রিভ্লাই দিন অথবা ইউজারের সঠিক আইডি ব্যবহার করুন।")
+                bot.reply_to(message, "❌ এই মেসেজ থেকে ইউজারের আইডি শনাক্ত করা যায়নি। সঠিক অর্ডার মেসেজে রিভ্লাই দিন।")
         return
 
     user = message.from_user
@@ -271,7 +260,8 @@ def handle_all_messages(message):
             trx_text = "[স্ক্রিনশট]"
         elif message.text:
             trx_text = message.text.strip()
-            if len(trx_text) < 6:
+            # ট্রানজেকশন আইডি সাধারণত ৪ বা ৫ অক্ষরের বেশি হয়, তাই সর্বনিম্ন ৪ ক্যারেক্টার চেক করা হলো
+            if len(trx_text) < 4:
                 bot.reply_to(message, "❌ ভুল ট্রানজেকশন আইডি! দয়া করে আপনার সঠিক TrxID লিখে পাঠান।")
                 return
         
@@ -285,7 +275,7 @@ def handle_all_messages(message):
         
         bot.reply_to(message, "⏳ আপনার ট্রানজেকশন আইডি এবং গেম UID যাচাই করা হচ্ছে...\n\n🕒 দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন, আপনার অর্ডারটি সফলভাবে চেক করে দ্রুত আপনার ইন-গেমে অ্যাড করা হবে।")
         
-        # অ্যাডমিনের জন্য আলাদা আলাদা মেসেজ ফরম্যাট (যাতে TrxID এবং UID আলাদা কপি করা যায়)
+        # অ্যাডমিনের কাছে পাঠানোর জন্য নিখুঁত ফরম্যাট
         admin_header = (f"🔔 নতুন অর্ডার যাচাইয়ের জন্য এসেছে!\n\n"
                         f"👤 ক্রেতা: {user_info}\n"
                         f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
@@ -300,7 +290,7 @@ def handle_all_messages(message):
                 bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
                 bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
             else:
-                bot.send_message(ADMIN_ID, admin_header, parse_message="Markdown")
+                bot.send_message(ADMIN_ID, admin_header, parse_mode="Markdown")
                 bot.send_message(ADMIN_ID, trx_msg, parse_mode="Markdown")
                 bot.send_message(ADMIN_ID, uid_msg, parse_mode="Markdown")
         except Exception as e:
@@ -315,7 +305,6 @@ def handle_all_messages(message):
         bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
 
 if __name__ == '__main__':
-    # রেন্ডার সার্ভারের জন্য স্বয়ংক্রিয় ওয়েবুক সেটআপ কনফিগারেশন
     RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
     if RENDER_EXTERNAL_URL:
         bot.remove_webhook()
