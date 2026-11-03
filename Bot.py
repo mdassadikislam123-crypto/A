@@ -7,7 +7,6 @@ import re
 
 API_TOKEN = '8973617780:AAErTwc1zEK8vSh0DZJqNFLIhJZmP3tFl4E'
 
-# আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
 
 WHATSAPP_LINK = 'https://wa.me/message/25RTDSJ2EXQ7E1'
@@ -109,13 +108,11 @@ def payment_rate(message):
 def callback_query(call):
     chat_id = call.message.chat.id
     
-    # অ্যাডমিনের জন্য কুইক রিপ্লাই ইনলাইন বাটন হ্যান্ডলিং
     if chat_id == ADMIN_ID and call.data.startswith("admin_reply_"):
         parts = call.data.split('_', 3)
         action = parts[2] 
         target_user_id = int(parts[3])
         
-        # আপনার পছন্দমতো সুন্দর ইমোজিসহ সাজানো মেসেজগুলো
         response_texts = {
             "wrongtrx": "❌ দুঃখিত! আপনার ট্রানজেকশন আইডিটি ভুল হয়েছে। দয়া করে আপনার সঠিক ট্রানজেকশন আইডিটি আবার দিন। 🔄",
             "notfound": "⚠️ দুঃখিত! আপনার ট্রানজেকশন আইডিটি এই মুহূর্তে খুঁজে পাওয়া যাচ্ছে না। দয়া করে সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন। 🔍",
@@ -128,6 +125,13 @@ def callback_query(call):
             bot.send_message(target_user_id, reply_text, parse_mode="Markdown")
             bot.answer_callback_query(call.id, "✅ ইউজারের কাছে সফলভাবে মেসেজ পাঠানো হয়েছে!")
             bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+            
+            if action == "success":
+                user_states.pop(target_user_id, None)
+                user_orders.pop(target_user_id, None)
+            else:
+                user_states[target_user_id] = "WAITING_FOR_TRX"
+                
         except Exception as e:
             bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
         return
@@ -165,7 +169,7 @@ def callback_query(call):
         user_orders[chat_id]["method"] = method_name
         user_states[chat_id] = "WAITING_FOR_TRX"
         
-        text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে **{method_name}** সিলেক্ট করেছেন।\n\n"
+        text = (f"ধন্যবাদ! আপনি পেমেন্ট মাধ্যম হিসেবে **{method_name}** সিলেক্ট করেছেন。\n\n"
                 f"আমাদের পার্সোনাল নম্বরে টাকা পাঠিয়ে দিন:\n"
                 f"📌 **{method_name} (Personal):** `{acc_number}`\n\n"
                 f"📥 **ধাপ ৩: টাকা পাঠানোর পর আপনার ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের স্ক্রিনশট এই চ্যাটে পাঠিয়ে দিন।**")
@@ -252,9 +256,8 @@ def handle_all_messages(message):
 
     elif current_state == "WAITING_FOR_TRX":
         if chat_id not in user_orders:
-            bot.reply_to(message, "সেশন শেষ হয়ে গেছে। দয়া করে /start দিয়ে আবার শুরু করুন।")
-            user_states.pop(chat_id, None)
-            return
+            # যদি কোনো কারণে ডিকশনারিতে অর্ডার না থাকে, তবে আগের UID বা ডিফল্ট তথ্য দিয়ে রিকভার করে নেওয়া বা সেশন রিফ্রেশ করা
+            user_orders[chat_id] = {"package": {"name": "টপ-আপ প্যাকেজ", "price": ""}, "uid": "N/A", "method": "বিকাশ/রকেট"}
 
         photo_id = None
         trx_text = "N/A"
@@ -286,11 +289,10 @@ def handle_all_messages(message):
         trx_msg = f"🔤 TrxID:\n`{trx_text}`"
         uid_msg = f"🆔 গেম UID:\n`{uid}` (ID: {chat_id})"
         
-        # অ্যাডমিনের জন্য নতুন ও সুন্দর কুইক রেসপন্স বাটন
         admin_markup = InlineKeyboardMarkup()
         admin_markup.row(
             InlineKeyboardButton("❌ ভুল TrxID", callback_data=f"admin_reply_wrongtrx_{chat_id}"),
-            InlineKeyboardButton("🔍 খুঁজ পাওয়া যায়নি", callback_data=f"admin_reply_notfound_{chat_id}")
+            InlineKeyboardButton("🔍 খুঁজে পাওয়া যায়নি", callback_data=f"admin_reply_notfound_{chat_id}")
         )
         admin_markup.add(InlineKeyboardButton("✅ পেমেন্ট সঠিক আছে", callback_data=f"admin_reply_success_{chat_id}"))
 
@@ -316,8 +318,6 @@ def handle_all_messages(message):
             print(f"Forward order failed: {e}")
             bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
             
-        user_states.pop(chat_id, None)
-        user_orders.pop(chat_id, None)
         return
 
     else:
