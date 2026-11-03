@@ -4,7 +4,7 @@ import time
 import threading
 from flask import Flask
 
-API_TOKEN = '8973617780:AAGObYqffLwVJqn3uKjp2LH0QQqUiTMHMcc'
+API_TOKEN = '8973617780:AAFKLBNjUD98PAh2FxWeSn9yi8oovEUN4y4'
 
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
 ADMIN_ID = 7283303333 
@@ -68,67 +68,105 @@ def run_flask():
     app.run(host='0.0.0.0', port=8080)
 # ---------------------------------------------
 
-# মূল মেনু দেখানোর ফাংশন
-def show_main_menu(chat_id, message_id=None):
+# ১. প্রথম কমান্ড: স্টার্ট (ইন্দ্রো ও মেইন অপশন মেনু)
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user_states.pop(message.chat.id, None)
+    user_orders.pop(message.chat.id, None)
+    
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list"))
+    markup.add(InlineKeyboardButton("💳 পেমেন্ট মেথড ও নিয়ম", callback_data="show_payment"))
+    markup.add(InlineKeyboardButton("💬 এডমিনের সাথে যোগাযোগ", callback_data="show_contact"))
+    
+    text = (
+        "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\n"
+        "নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
+    )
+    bot.send_message(message.chat.id, text, reply_markup=markup)
+
+# ২. দ্বিতীয় কমান্ড: টপ আপ লিস্ট
+@bot.message_handler(commands=['list', 'top_up'])
+def show_packages_command(message):
+    show_packages_menu(message.chat.id)
+
+def show_packages_menu(chat_id, message_id=None):
     markup = InlineKeyboardMarkup()
     for key, value in packages.items():
         markup.add(InlineKeyboardButton(f"{value['name']} - {value['price']}", callback_data=key))
     
-    markup.add(InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ", url=WHATSAPP_LINK))
-    markup.add(InlineKeyboardButton("👑 ওনারের সাথে যোগাযোগ", url=ADMIN_TELEGRAM))
+    markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
     
-    text = "আসসালামু আলাইকুম। আমাদের টপআপ বটে আপনাকে স্বাগতম!\n\nনিচের প্যাকেজগুলো থেকে আপনার প্রয়োজনীয় প্যাকেজটি সিলেক্ট করুন:"
+    text = "💎 **আমাদের টপ-আপ প্যাকেজসমূহ:**\n\nনিচের প্যাকেজগুলো থেকে আপনার পছন্দের প্যাকেজটি সিলেক্ট করুন:"
     if message_id:
         try:
-            bot.edit_message_text(text=text, chat_id=chat_id, message_id=message_id, reply_markup=markup)
+            bot.edit_message_text(text=text, chat_id=chat_id, message_id=message_id, reply_markup=markup, parse_mode="Markdown")
         except Exception:
-            bot.send_message(chat_id, text, reply_markup=markup)
+            bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
     else:
-        bot.send_message(chat_id, text, reply_markup=markup)
+        bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
-@bot.message_handler(commands=['start', 'top_up'])
-def send_welcome(message):
-    user_states.pop(message.chat.id, None)
-    user_orders.pop(message.chat.id, None)
-    show_main_menu(message.chat.id)
-
-@bot.message_handler(commands=['contact'])
-def contact_support(message):
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ করুন", url=WHATSAPP_LINK))
-    markup.add(InlineKeyboardButton("👑 ওনারের টেলিগ্রাম", url=ADMIN_TELEGRAM))
-    bot.send_message(
-        message.chat.id, 
-        "সাপোর্ট ও যোগাযোগের জন্য নিচের মাধ্যমগুলো ব্যবহার করুন:", 
-        reply_markup=markup
-    )
-
-@bot.message_handler(commands=['owner'])
-def contact_owner(message):
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("👑 সরাসরি ওনারের সাথে চ্যাট করুন", url=ADMIN_TELEGRAM))
-    bot.send_message(
-        message.chat.id,
-        "বটের ওনার বা এডমিনের সাথে সরাসরি কথা বলতে নিচের বাটনে ক্লিক করুন:",
-        reply_markup=markup
-    )
-
-@bot.message_handler(commands=['rate'])
+# ৩. তৃতীয় কমান্ড: পেমেন্ট মেথড
+@bot.message_handler(commands=['payment', 'rate'])
 def payment_rate(message):
     text = (
         "💳 **পেমেন্ট মেথড ও নিয়মাবলী:**\n\n"
         "🔹 **বিকাশ (Personal):** `01820313593` (`*247#` ডায়াল করে সেন্ড মানি করুন)\n"
         "🔹 **রকেট (Personal):** `01820313593` (`*322#` ডায়াল করে সেন্ড মানি করুন)\n\n"
-        "প্যাকেজ সিলেক্ট করে নিয়ম অনুযায়ী টাকা পাঠিয়ে ট্রানজেকশন আইডি দিন।"
+        "টাকা পাঠিয়ে ট্রানজেকশন আইডি বটে জমা দিন।"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
+# ৪. চতুর্থ কমান্ড: কন্টাক্ট (এডমিনের সাথে যোগাযোগ)
+@bot.message_handler(commands=['contact', 'owner'])
+def contact_support(message):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("👑 সরাসরি ওনারের সাথে চ্যাট করুন", url=ADMIN_TELEGRAM))
+    markup.add(InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ করুন", url=WHATSAPP_LINK))
+    markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+    
+    bot.send_message(
+        message.chat.id, 
+        "সাপোর্ট ও এডমিনের সাথে যোগাযোগের জন্য নিচের মাধ্যমগুলো ব্যবহার করুন:", 
+        reply_markup=markup
+    )
+
+# ইনলাইন বাটন হ্যান্ডলার
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
     
+    if call.data == "show_list":
+        show_packages_menu(chat_id, call.message.message_id)
+        
+    elif call.data == "show_payment":
+        text = (
+            "💳 **পেমেন্ট মেথড ও নিয়মাবলী:**\n\n"
+            "🔹 **বিকাশ (Personal):** `01820313593` (`*247#` ডায়াল করে সেন্ড মানি করুন)\n"
+            "🔹 **রকেট (Personal):** `01820313593` (`*322#` ডায়াল করে সেন্ড মানি করুন)\n\n"
+            "টাকা পাঠিয়ে ট্রানজেকশন আইডি বটে জমা দিন।"
+        )
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        try:
+            bot.edit_message_text(text=text, chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        except Exception:
+            pass
+
+    elif call.data == "show_contact":
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("👑 সরাসরি ওনারের সাথে চ্যাট করুন", url=ADMIN_TELEGRAM))
+        markup.add(InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ করুন", url=WHATSAPP_LINK))
+        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        try:
+            bot.edit_message_text(text="সাপোর্ট ও এডমিনের সাথে যোগাযোগের জন্য নিচের মাধ্যমগুলো ব্যবহার করুন:", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup)
+        except Exception:
+            pass
+
     # এডমিনের জন্য ইনলাইন বাটন ক্লিক হ্যান্ডেলিং
-    if call.data.startswith("admin_reply_"):
+    elif call.data.startswith("admin_reply_"):
         if chat_id != ADMIN_ID:
             return
         
@@ -136,10 +174,9 @@ def callback_query(call):
         action = parts[2] # 'success' অথবা 'notfound'
         target_user_id = int(parts[3])
         
-        # পেমেন্ট সফল হওয়ার পরের মেসেজ (এখন ইউআইডি চাওয়া হবে)
         success_msg = (
-            "✅ **আপনার পেমেন্ট সফলভাবে যাচাই করা হয়েছে!**\n\n"
-            "📌 **এখন আপনার গেম ইউআইডি (UID) টি লিখে এই চ্যাটে পাঠিয়ে দিন:**"
+            "🎉 **অভিনন্দন! আপনার পেমেন্ট সফলভাবে সম্পন্ন হয়েছে এবং টপ-আপ দেওয়া হয়েছে।** 🎮\n\n"
+            "আপনার অর্ডারটি সফলভাবে চেক ও ডেলিভারি করা হয়েছে। আমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️"
         )
         
         not_found_msg = (
@@ -149,25 +186,37 @@ def callback_query(call):
         
         if action == "success":
             final_reply = success_msg
-            # পেমেন্ট সফল হওয়ার পর ইউজারকে ইউআইডি দেওয়ার স্টেপে পাঠানো হবে
-            user_states[target_user_id] = "WAITING_FOR_UID"
+            user_states.pop(target_user_id, None)
+            user_orders.pop(target_user_id, None)
         else:
             final_reply = not_found_msg
-            # ট্রানজেকশন আইডি ভুল হলে আবার ট্রানজেকশন দেওয়ার স্টেপে রাখা হবে
             user_states[target_user_id] = "WAITING_FOR_TRX"
         
         try:
             bot.send_message(target_user_id, final_reply, parse_mode="Markdown")
-            bot.answer_callback_query(call.id, "✅ এডমিন অ্যাকশন সফল হয়েছে!")
+            bot.answer_callback_query(call.id, "✅ ইউজারের কাছে মেসেজ সফলভাবে পাঠানো হয়েছে!")
             bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
         except Exception as e:
             bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
         return
 
-    if call.data == "back_to_menu":
+    elif call.data == "back_to_menu":
         user_states.pop(chat_id, None)
         user_orders.pop(chat_id, None)
-        show_main_menu(chat_id, call.message.message_id)
+        
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list"))
+        markup.add(InlineKeyboardButton("💳 পেমেন্ট মেথড ও নিয়ম", callback_data="show_payment"))
+        markup.add(InlineKeyboardButton("💬 এডমিনের সাথে যোগাযোগ", callback_data="show_contact"))
+        
+        text = (
+            "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\n"
+            "নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
+        )
+        try:
+            bot.edit_message_text(text=text, chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup)
+        except Exception:
+            bot.send_message(chat_id, text, reply_markup=markup)
         
     elif call.data in packages:
         selected_package = packages[call.data]
@@ -206,7 +255,7 @@ def callback_query(call):
         )
         
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("⬅️ প্যাকেজ মেনুতে ফিরে যান", callback_data="back_to_menu"))
+        markup.add(InlineKeyboardButton("⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"))
         
         try:
             bot.edit_message_text(text=text, chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
@@ -226,10 +275,10 @@ def handle_all_messages(message):
     user_info = f"@{user.username}" if user.username else f"{user.first_name} (ID: {user.id})"
     current_state = user_states.get(chat_id)
     
-    # ধাপ ১: ট্রানজেকশন আইডি বা স্ক্রিনশট গ্রহণ করা (পেমেন্ট প্রসেস)
-    if current_state == "WAITING_FOR_TRX" or current_state == "WAITING_FOR_CORRECT_TRX":
+    # ধাপ ১: ট্রানজেকশন আইডি বা স্ক্রিনশট গ্রহণ করা
+    if current_state == "WAITING_FOR_TRX":
         if chat_id not in user_orders:
-            bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
+            bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
             return
 
         if message.photo:
@@ -243,7 +292,6 @@ def handle_all_messages(message):
             bot.reply_to(message, "❌ দয়া করে সঠিক ট্রানজেকশন আইডি অথবা পেমেন্টের স্ক্রিনশট দিন।")
             return
             
-        # ট্রানজেকশন পাওয়ার পর ইউজারকে অপেক্ষার বার্তা দিয়ে এডমিনের কাছে পাঠানো হবে
         bot.reply_to(
             message, 
             "⏳ আপনার ট্রানজেকশন আইডিটি চেক করা হচ্ছে, দয়া করে ১ থেকে ২ মিনিট অপেক্ষা করুন।"
@@ -281,7 +329,7 @@ def handle_all_messages(message):
     # ধাপ ২: পেমেন্ট সফল হওয়ার পরে ইউজার যখন গেম ইউআইডি (UID) পাঠাবে
     elif current_state == "WAITING_FOR_UID":
         if chat_id not in user_orders:
-            bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
+            bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
             user_states.pop(chat_id, None)
             return
             
@@ -295,7 +343,6 @@ def handle_all_messages(message):
         method_name = order_info.get("method", "N/A")
         trx = order_info.get("trx", "N/A")
         
-        # চূড়ান্ত অর্ডারটি এখন এডমিনের কাছে টপ-আপ দেওয়ার জন্য যাবে
         admin_msg = (f"🎮 পেমেন্ট কনফার্মড! এখন টপ-আপ দিন:\n\n"
                      f"👤 ক্রেতা: {user_info}\n"
                      f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
@@ -306,7 +353,6 @@ def handle_all_messages(message):
         try:
             bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
             
-            # ইউজারের কাছে আপনার চাওয়া চূড়ান্ত মেসেজটি পাঠানো হবে
             bot.reply_to(
                 message,
                 "✅ আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে!\n"
@@ -321,7 +367,7 @@ def handle_all_messages(message):
         return
 
     else:
-        bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে প্যাকেজ সিলেক্ট করুন।")
+        bot.reply_to(message, "বট সচল আছে। নতুন করে শুরু করতে /start কমান্ড দিন।")
 
 # মেইন রান ফাংশন যেখানে ফ্লাস্ক সার্ভার এবং টেলিগ্রাম বট একসাথে চলবে
 if __name__ == '__main__':
