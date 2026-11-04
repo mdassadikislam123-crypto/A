@@ -2,7 +2,12 @@ import threading
 import time
 from flask import Flask
 import telebot
-from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from telebot.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
 # আপনার টেলিগ্রাম বট টোকেন
 API_TOKEN = "8973617780:AAGObYqffLwVJqn3uKjp2LH0QQqUiTMHMcc"
@@ -19,6 +24,7 @@ bot = telebot.TeleBot(API_TOKEN)
 # ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
 user_states = {}
 user_orders = {}
+user_contacts = {}  # ইউজারের কন্টাক্ট নম্বর সেভ রাখার জন্য
 
 # সঠিক পেমেন্ট নম্বর ও নিয়মাবলী
 PAYMENT_INFO = {
@@ -48,7 +54,7 @@ PAYMENT_INFO = {
     },
 }
 
-# প্যাকেজের তালিকা ও দাম (সিরিয়াল ঠিক রেখে শুধু নাম ও দাম রাখা হয়েছে)
+# প্যাকেজের তালিকা ও দাম
 packages = {
     "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},
     "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},
@@ -61,7 +67,7 @@ packages = {
     "pack9": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
 }
 
-# --- Flask Server (রেন্ডার বা অন্যান্য হোস্টিংয়ের স্লিপ মোড রোধ করার জন্য) ---
+# --- Flask Server (রেন্ডার স্লিপ মোড রোধ করার জন্য) ---
 app = Flask(__name__)
 
 
@@ -77,12 +83,41 @@ def run_flask():
 # ---------------------------------------------
 
 
-# ১. প্রথম কমান্ড: স্টার্ট (ইনট্রো ও মেইন অপশন মেনু)
+# ১. প্রথম কমান্ড: স্টার্ট (কন্টাক্ট নম্বর চাওয়া)
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-  user_states.pop(message.chat.id, None)
-  user_orders.pop(message.chat.id, None)
+  chat_id = message.chat.id
+  if chat_id == ADMIN_ID:
+    bot.send_message(
+        chat_id, "এডমিন প্যানেলে স্বাগতম! বট সচল আছে।", reply_markup=None
+    )
+    return
 
+  user_states.pop(chat_id, None)
+  user_orders.pop(chat_id, None)
+
+  # যদি ইউজারের কন্টাক্ট আগে থেকেই সেভ না থাকে, তবে নম্বর শেয়ার করতে বলা হবে
+  if chat_id not in user_contacts:
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    button_phone = KeyboardButton(
+        "📱 আমার কন্টাক্ট নম্বরটি দিন", request_contact=True
+    )
+    markup.add(button_phone)
+
+    bot.send_message(
+        chat_id,
+        "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\nবট ব্যবহারের"
+        " পূর্বে আপনার কন্টাক্ট নম্বরটি শেয়ার করুন (এটি শুধুমাত্র আপনার প্রোফাইল"
+        " ভেরিফিকেশনের জন্য নেওয়া হচ্ছে):",
+        reply_markup=markup,
+    )
+    user_states[chat_id] = "WAITING_FOR_CONTACT"
+  else:
+    show_main_menu(chat_id)
+
+
+# মূল মেনু দেখানোর ফাংশন
+def show_main_menu(chat_id):
   markup = InlineKeyboardMarkup()
   markup.add(
       InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list")
@@ -99,18 +134,12 @@ def send_welcome(message):
   )
 
   text = (
-      "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\n"
-      "নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
+      "স্বাগতম! নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপشنটি সিলেক্ট করুন:"
   )
-  bot.send_message(message.chat.id, text, reply_markup=markup)
+  bot.send_message(chat_id, text, reply_markup=markup)
 
 
-# ২. দ্বিতীয় কমান্ড: টপ আপ লিস্ট
-@bot.message_handler(commands=["list", "top_up"])
-def show_packages_command(message):
-  show_packages_menu(message.chat.id)
-
-
+# প্যাকেজ মেনু
 def show_packages_menu(chat_id, message_id=None):
   markup = InlineKeyboardMarkup()
   for key, value in packages.items():
@@ -145,53 +174,6 @@ def show_packages_menu(chat_id, message_id=None):
       )
   else:
     bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
-
-
-# ৩. তৃতীয় কমান্ড: পেমেন্ট মেথড
-@bot.message_handler(commands=["payment", "rate"])
-def payment_rate(message):
-  text = (
-      "💳 **পেমেন্ট মেথড ও নিয়মাবলী:**\n\n"
-      "🔹 **বিকাশ (Personal):** `01820313593` (`*247#` ডায়াল করে সেন্ড মানি"
-      " করুন)\n"
-      "🔹 **রকেট (Personal):** `01820313593` (`*322#` ডায়াল করে সেন্ড মানি"
-      " করুন)\n\n"
-      "টাকা পাঠিয়ে ট্রানজেকশন আইডি বটে জমা দিন।"
-  )
-  markup = InlineKeyboardMarkup()
-  markup.add(
-      InlineKeyboardButton(
-          "⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"
-      )
-  )
-  bot.send_message(
-      message.chat.id, text, reply_markup=markup, parse_mode="Markdown"
-  )
-
-
-# ৪. চতুর্থ কমান্ড: কন্টাক্ট (এডমিনের সাথে যোগাযোগ)
-@bot.message_handler(commands=["contact", "owner"])
-def contact_support(message):
-  markup = InlineKeyboardMarkup()
-  markup.add(
-      InlineKeyboardButton(
-          "👑 সরাসরি ওনারের সাথে চ্যাট করুন", url=ADMIN_TELEGRAM
-      )
-  )
-  markup.add(
-      InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ করুন", url=WHATSAPP_LINK)
-  )
-  markup.add(
-      InlineKeyboardButton(
-          "⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"
-      )
-  )
-
-  bot.send_message(
-      message.chat.id,
-      "সাপোর্ট ও এডমিনের সাথে যোগাযোগের জন্য নিচের মাধ্যমগুলো ব্যবহার করুন:",
-      reply_markup=markup,
-  )
 
 
 # ইনলাইন বাটন হ্যান্ডলার
@@ -256,13 +238,13 @@ def callback_query(call):
     except Exception:
       pass
 
-  # এডমিনের জন্য ইনলাইন বাটন ক্লিক হ্যান্ডেলিং
+  # এডমিন প্যানেল থেকে ইউজারের পেমেন্ট সফল বা ব্যর্থ করার বাটন হ্যান্ডলিং
   elif call.data.startswith("admin_reply_"):
     if chat_id != ADMIN_ID:
       return
 
     parts = call.data.split("_")
-    action = parts[2]  # 'success' অথবা 'notfound'
+    action = parts[2]
     target_user_id = int(parts[3])
 
     success_msg = (
@@ -299,40 +281,11 @@ def callback_query(call):
   elif call.data == "back_to_menu":
     user_states.pop(chat_id, None)
     user_orders.pop(chat_id, None)
-
-    markup = InlineKeyboardMarkup()
-    markup.add(
-        InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list")
-    )
-    markup.add(
-        InlineKeyboardButton(
-            "💳 পেমেন্ট মেথড ও নিয়ম", callback_data="show_payment"
-        )
-    )
-    markup.add(
-        InlineKeyboardButton(
-            "💬 এডমিনের সাথে যোগাযোগ", callback_data="show_contact"
-        )
-    )
-
-    text = (
-        "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\n"
-        "নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
-    )
-    try:
-      bot.edit_message_text(
-          text=text,
-          chat_id=chat_id,
-          message_id=call.message.message_id,
-          reply_markup=markup,
-      )
-    except Exception:
-      bot.send_message(chat_id, text, reply_markup=markup)
+    show_main_menu(chat_id)
 
   elif call.data in packages:
     selected_package = packages[call.data]
 
-    # যদি Out of stock থাকে তবে ক্লিক করলে ওয়ার্নিং দেওয়া
     if "Out of stock" in selected_package["name"]:
       bot.answer_callback_query(
           call.id,
@@ -407,7 +360,7 @@ def callback_query(call):
       pass
 
 
-# ব্যবহারকারী বা এডমিনের মেসেজ হ্যান্ডেল করার ফাংশন
+# মেসেজ এবং কন্টাক্ট হ্যান্ডেলিং
 @bot.message_handler(
     func=lambda message: True,
     content_types=[
@@ -418,6 +371,7 @@ def callback_query(call):
         "sticker",
         "audio",
         "voice",
+        "contact",
     ],
 )
 def handle_all_messages(message):
@@ -428,13 +382,57 @@ def handle_all_messages(message):
     return
 
   user = message.from_user
+  current_state = user_states.get(chat_id)
+
+  # ১. ইউজার যখন কন্টাক্ট শেয়ার করবে
+  if message.contact:
+    phone_number = message.contact.phone_number
+    user_contacts[chat_id] = phone_number
+
+    user_info_msg = (
+        f"👤 **নতুন ইউজার যুক্ত হয়েছে!**\n\n"
+        f"• নাম: {user.first_name} {user.last_name or ''}\n"
+        f"• ইউজারনেম: @{user.username if user.username else 'নেই'}\n"
+        f"• ইউজার আইডি (Chat ID): `{user.id}`\n"
+        f"• কন্টাক্ট নম্বর: `{phone_number}`"
+    )
+
+    # এডমিনের কাছে ইউজারের প্রোফাইল এবং নম্বর পাঠিয়ে দেওয়া হবে
+    try:
+      bot.send_message(ADMIN_ID, user_info_msg, parse_mode="Markdown")
+    except Exception as e:
+      print(f"Failed to send contact to admin: {e}")
+
+    bot.reply_to(
+        message,
+        "✅ আপনার কন্টাক্ট সফলভাবে ভেরিফাই করা হয়েছে!",
+        reply_markup=telebot.types.ReplyKeyboardRemove(),
+    )
+    user_states.pop(chat_id, None)
+    show_main_menu(chat_id)
+    return
+
+  # যদি কেউ কন্টাক্ট না দিয়ে অন্য কিছু লেখে অথচ স্টেট WAITING_FOR_CONTACT থাকে
+  if current_state == "WAITING_FOR_CONTACT":
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    button_phone = KeyboardButton(
+        "📱 আমার কন্টাক্ট নম্বরটি দিন", request_contact=True
+    )
+    markup.add(button_phone)
+    bot.reply_to(
+        message,
+        "দয়া করে নিচের বাটনে ক্লিক করে আপনার কন্টাক্ট নম্বরটি শেয়ার করুন:",
+        reply_markup=markup,
+    )
+    return
+
   user_info = (
       f"@{user.username}" if user.username else f"{user.first_name} (ID:"
       f" {user.id})"
   )
-  current_state = user_states.get(chat_id)
+  phone_num = user_contacts.get(chat_id, "শেয়ার করা হয়নি")
 
-  # ধাপ ১: ট্রানজেকশন আইডি বা স্ক্রিনশট গ্রহণ করা
+  # ২. ট্রানজেকশন আইডি বা পেমেন্ট স্ক্রিনশট গ্রহণ করা
   if current_state == "WAITING_FOR_TRX":
     if chat_id not in user_orders:
       bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
@@ -471,6 +469,8 @@ def handle_all_messages(message):
     admin_msg = (
         "🔔 নতুন পেমেন্ট যাচাইয়ের অনুরোধ!\n\n"
         f"👤 ক্রেতা: {user_info}\n"
+        f"📞 মোবাইল: `{phone_num}`\n"
+        f"🆔 ইউজার আইডি: `{chat_id}`\n"
         f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
         f"💳 মাধ্যম: {method_name}\n"
         f"🔤 TrxID: `{trx}`"
@@ -505,12 +505,12 @@ def handle_all_messages(message):
             reply_markup=admin_markup,
         )
     except Exception as e:
-        print(f"Forward payment failed: {e}")
-        bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+      print(f"Forward payment failed: {e}")
+      bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
 
     return
 
-  # ধাপ ২: পেমেন্ট সফল হওয়ার পরে ইউজার যখন গেম ইউআইডি (UID) পাঠাবে
+  # ৩. ইউজার যখন গেম ইউআইডি (UID) পাঠাবে
   elif current_state == "WAITING_FOR_UID":
     if chat_id not in user_orders:
       bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
@@ -534,6 +534,8 @@ def handle_all_messages(message):
     admin_msg = (
         "🎮 পেমেন্ট কনফার্মড! এখন টপ-আপ দিন:\n\n"
         f"👤 ক্রেতা: {user_info}\n"
+        f"📞 মোবাইল: `{phone_num}`\n"
+        f"🆔 ইউজার আইডি: `{chat_id}`\n"
         f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
         f"💳 মাধ্যম: {method_name}\n"
         f"🔤 TrxID: `{trx}`\n"
@@ -558,9 +560,7 @@ def handle_all_messages(message):
     return
 
   else:
-    bot.reply_to(
-        message, "বট সচল আছে। নতুন করে শুরু করতে /start কমান্ড দিন।"
-    )
+    bot.reply_to(message, "বট সচল আছে। নতুন করে শুরু করতে /start কমান্ড দিন।")
 
 
 # --- মূল রান সেকশন ---
@@ -570,14 +570,21 @@ if __name__ == "__main__":
   flask_thread.start()
   print("Flask web server started on port 8080 to prevent sleep mode...")
 
+  # পুরনো ওয়েবহুক রিমুভ করা হচ্ছে
+  try:
+    bot.remove_webhook()
+    print("Old webhooks removed successfully.")
+  except Exception as e:
+    print(f"Could not remove webhook: {e}")
+
   print("Bot is running with infinity polling...")
   while True:
     try:
       bot.infinity_polling(
-          none_stop=True,
+          non_stop=True,
           interval=0,
           timeout=20,
-          long_polling_timeout=20, # এটি কনফ্লিক্ট বা মাল্টিপল ইনস্ট্যান্স এরর সমাধান করবে
+          long_polling_timeout=20,
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
