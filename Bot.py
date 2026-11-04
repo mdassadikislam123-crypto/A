@@ -134,7 +134,7 @@ def show_main_menu(chat_id):
   )
 
   text = (
-      "স্বাগতম! নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপشنটি সিলেক্ট করুন:"
+      "স্বাগতম! নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
   )
   bot.send_message(chat_id, text, reply_markup=markup)
 
@@ -580,8 +580,8 @@ if __name__ == "__main__":
   print("Bot is running with infinity polling...")
   while True:
     try:
+      # ত্রুটিপূর্ণ non_stop=True আর্গুমেন্টটি এখানে থেকে বাদ দেওয়া হয়েছে
       bot.infinity_polling(
-          non_stop=True,
           interval=0,
           timeout=20,
           long_polling_timeout=20,
