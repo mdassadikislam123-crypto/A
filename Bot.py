@@ -577,8 +577,7 @@ if __name__ == "__main__":
           none_stop=True,
           interval=0,
           timeout=20,
-          long_polling_timeout=20,
-          remove_webhook=True,  # এটি কনফ্লিক্ট বা মাল্টিপল ইনস্ট্যান্স এরর সমাধান করবে
+          long_polling_timeout=20, # এটি কনফ্লিক্ট বা মাল্টিপল ইনস্ট্যান্স এরর সমাধান করবে
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
