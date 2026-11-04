@@ -50,15 +50,15 @@ PAYMENT_INFO = {
 
 # প্যাকেজের তালিকা ও দাম (সিরিয়াল ঠিক রেখে শুধু নাম ও দাম রাখা হয়েছে)
 packages = {
-    "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},✅
-    "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},✅
-    "pack3": {"name": "💎 115 ডায়মন্ড", "price": "77 TK"},✅
-    "pack4": {"name": "💎 240 ডায়মন্ড", "price": "154 TK"},✅
-    "pack5": {"name": "💎 610 ডায়মন্ড", "price": "385 TK"},✅
-    "pack6": {"name": "💎 1240 ডায়মন্ড", "price": "780 TK"},✅
-    "pack7": {"name": "Weekly", "price": "152 TK"},✅
-    "pack8": {"name": "Monthly", "price": "770 TK"},✅
-    "pack9": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},❌
+    "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},
+    "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},
+    "pack3": {"name": "💎 115 ডায়মন্ড", "price": "77 TK"},
+    "pack4": {"name": "💎 240 ডায়মন্ড", "price": "154 TK"},
+    "pack5": {"name": "💎 610 ডায়মন্ড", "price": "385 TK"},
+    "pack6": {"name": "💎 1240 ডায়মন্ড", "price": "780 TK"},
+    "pack7": {"name": "Weekly", "price": "152 TK"},
+    "pack8": {"name": "Monthly", "price": "770 TK"},
+    "pack9": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
 }
 
 # --- Flask Server (রেন্ডার বা অন্যান্য হোস্টিংয়ের স্লিপ মোড রোধ করার জন্য) ---
