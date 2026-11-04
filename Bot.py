@@ -384,7 +384,7 @@ def callback_query(call):
 
     text = (
         f"ধন্যবাদ! আপনি {selected_package['name']} ({selected_package['price']})"
-        f" এর জন্য {pay_data['name']} সিলেক্ট করেছেন।\n\n"
+        f" এর জন্য {pay_data['name']} সিলেক্ট করেছেন。\n\n"
         f"{pay_data['instructions']}"
     )
 
@@ -574,7 +574,11 @@ if __name__ == "__main__":
   while True:
     try:
       bot.infinity_polling(
-          none_stop=True, interval=0, timeout=20, long_polling_timeout=20
+          none_stop=True,
+          interval=0,
+          timeout=20,
+          long_polling_timeout=20,
+          remove_webhook=True,  # এটি কনফ্লিক্ট বা মাল্টিপল ইনস্ট্যান্স এরর সমাধান করবে
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
