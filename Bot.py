@@ -11,8 +11,8 @@ from telebot.types import (
     ReplyKeyboardMarkup,
 )
 
-# টেলিগ্রাম বট টোকেন
-API_TOKEN = "8973617780:AAEenWkX8Kd6q-fjHCijCrElvB0Cz8ajjNY"
+# আপনার নতুন টেলিগ্রাম বট টোকেন
+API_TOKEN = "9120055505:AAHFGkjefGTxTEulB16xGbaOgu2AifHPoKg"
 
 # এডমিনের সংখ্যাসূচক আইডি
 ADMIN_ID = 7283303333
@@ -36,7 +36,9 @@ def load_contacts():
   if os.path.exists(CONTACTS_FILE):
     try:
       with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
-        return {int(k): v for k, v in json.load(f).items()}
+        data = json.load(f)
+        # সব চ্যাট আইডি ইন্টিজারে রূপান্তর করে লোড করা হলো যাতে কোনো ভুল না হয়
+        return {int(k): v for k, v in data.items()}
     except Exception:
       return {}
   return {}
@@ -133,7 +135,8 @@ def send_welcome(message):
   user_states.pop(chat_id, None)
   user_orders.pop(chat_id, None)
 
-  if chat_id not in user_contacts:
+  # নিশ্চিত করা হলো যেন চ্যাট আইডি সঠিকভাবে চেক হয়
+  if int(chat_id) not in user_contacts:
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_phone = KeyboardButton(
         "📱 আমার কন্টাক্ট নম্বরটি দিন", request_contact=True
@@ -465,7 +468,7 @@ def handle_all_messages(message):
   # কন্টাক্ট রিসিভ করা হলে
   if message.contact:
     phone_number = message.contact.phone_number
-    user_contacts[chat_id] = phone_number
+    user_contacts[int(chat_id)] = phone_number
     save_contacts()
 
     user_info_msg = (
@@ -507,7 +510,7 @@ def handle_all_messages(message):
       f"@{user.username}" if user.username else f"{user.first_name} (ID:"
       f" {user.id})"
   )
-  phone_num = user_contacts.get(chat_id, "শেয়ার করা হয়নি")
+  phone_num = user_contacts.get(int(chat_id), "শেয়ার করা হয়নি")
 
   if current_state == "WAITING_FOR_TRX":
     if chat_id not in user_orders:
