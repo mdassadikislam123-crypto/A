@@ -10,7 +10,7 @@ from telebot.types import (
 )
 
 # আপনার টেলিগ্রাম বট টোকেন
-API_TOKEN = "8973617780:AAHWcxJHnNT_LePfvkzGLiHPskwD4CzgmwU"
+API_TOKEN = "8973617780:AAEenWkX8Kd6q-fjHCijCrElvB0Cz8ajjNY"
 
 # আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID) - শুধুমাত্র আপনিই অ্যাডমিন
 ADMIN_ID = 7283303333
