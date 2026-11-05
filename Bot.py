@@ -134,13 +134,13 @@ def send_welcome(message):
     show_main_menu(chat_id)
 
 
-# নতুন ব্রডকাস্ট কমান্ড (এটি শতভাগ নিশ্চিত যে শুধুমাত্র আপনি তথা অ্যাডমিনই ব্যবহার করতে পারবেন)
+# নতুন ব্রডকাস্ট কমান্ড (শুধুমাত্র অ্যাডমিনের জন্য সুরক্ষিত)
 @bot.message_handler(commands=["broadcast"])
 def broadcast_message(message):
   global latest_broadcast, sent_users
   chat_id = message.chat.id
 
-  # নিরাপত্তা চেক: অ্যাডমিন ছাড়া অন্য কেউ কমান্ড দিলে সেটি কাজ করবে না
+  # নিরাপত্তা চেক: অ্যাডমিন ছাড়া অন্য কেউ কমান্ড দিলে কাজ করবে না
   if chat_id != ADMIN_ID:
     return
 
