@@ -11,7 +11,7 @@ from telebot.types import (
     ReplyKeyboardMarkup,
 )
 
-# আপনার নতুন টেলিগ্রাম বট টোকেন
+# আপনার টেলিগ্রাম বট টোকেন
 API_TOKEN = "9120055505:AAHFGkjefGTxTEulB16xGbaOgu2AifHPoKg"
 
 # এডমিনের সংখ্যাসূচক আইডি
@@ -37,7 +37,6 @@ def load_contacts():
     try:
       with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
-        # সব চ্যাট আইডি ইন্টিজারে রূপান্তর করে লোড করা হলো যাতে কোনো ভুল না হয়
         return {int(k): v for k, v in data.items()}
     except Exception:
       return {}
@@ -61,7 +60,7 @@ latest_broadcast = (
 )
 sent_users = set()
 
-# পেমেন্ট নিয়মাবলী
+# পেমেন্ট নিয়মাবলী ও সিস্টেম
 PAYMENT_INFO = {
     "bkash": {
         "number": "01820313593",
@@ -135,7 +134,6 @@ def send_welcome(message):
   user_states.pop(chat_id, None)
   user_orders.pop(chat_id, None)
 
-  # নিশ্চিত করা হলো যেন চ্যাট আইডি সঠিকভাবে চেক হয়
   if int(chat_id) not in user_contacts:
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_phone = KeyboardButton(
@@ -465,7 +463,6 @@ def handle_all_messages(message):
   user = message.from_user
   current_state = user_states.get(chat_id)
 
-  # কন্টাক্ট রিসিভ করা হলে
   if message.contact:
     phone_number = message.contact.phone_number
     user_contacts[int(chat_id)] = phone_number
@@ -658,5 +655,5 @@ if __name__ == "__main__":
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
-      print("Restarting polling in 5 seconds...")
+      print("Restarting polling in 5 secondscharts...")
       time.sleep(5)
