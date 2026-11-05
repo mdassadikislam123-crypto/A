@@ -12,7 +12,7 @@ from telebot.types import (
 # আপনার টেলিগ্রাম বট টোকেন
 API_TOKEN = "8973617780:AAGObYqffLwVJqn3uKjp2LH0QQqUiTMHMcc"
 
-# আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID)
+# আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID) - শুধুমাত্র আপনিই অ্যাডমিন
 ADMIN_ID = 7283303333
 
 # সঠিক ফরম্যাটে লিংকসমূহ
@@ -25,6 +25,14 @@ bot = telebot.TeleBot(API_TOKEN)
 user_states = {}
 user_orders = {}
 user_contacts = {}  # ইউজারের কন্টাক্ট নম্বর সেভ রাখার জন্য
+active_users = set()  # সকল ইউজারের চ্যাট আইডি সেভ রাখার জন্য
+
+# সর্বশেষ অফার এবং কোন কোন ইউজারের কাছে পাঠানো হয়েছে তা ট্র্যাক করার সেট
+latest_broadcast = (
+    "🔥 **বিশেষ অফার ও আপডেট!**\n\nআমাদের বট থেকে খুব কম মূল্যে ডায়মন্ড টপ-আপ"
+    " করুন এবং দারুণ সব অফার উপভোগ করুন।"
+)
+sent_users = set()  # যে ইউজারদের কাছে অফার পাঠানো হয়েছে
 
 # সঠিক পেমেন্ট নম্বর ও নিয়মাবলী
 PAYMENT_INFO = {
@@ -83,20 +91,28 @@ def run_flask():
 # ---------------------------------------------
 
 
-# ১. প্রথম কমান্ড: স্টার্ট (কন্টাক্ট নম্বর চাওয়া)
+# ১. প্রথম কমান্ড: স্টার্ট
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
   chat_id = message.chat.id
+
+  if chat_id != ADMIN_ID:
+    active_users.add(chat_id)
+
+  # যদি ইউজার অ্যাডমিন হয়
   if chat_id == ADMIN_ID:
     bot.send_message(
-        chat_id, "এডমিন প্যানেলে স্বাগতম! বট সচল আছে।", reply_markup=None
+        chat_id,
+        "এডমিন প্যানেলে স্বাগতম! বট সচল আছে।\n\n📢 সবার কাছে একবার মাত্র অফার"
+        " পাঠাতে ব্যবহার করুন:\n`/broadcast আপনার অফার বা মেসেজ`",
+        parse_mode="Markdown",
     )
     return
 
   user_states.pop(chat_id, None)
   user_orders.pop(chat_id, None)
 
-  # যদি ইউজারের কন্টাক্ট আগে থেকেই সেভ না থাকে, তবে নম্বর শেয়ার করতে বলা হবে
+  # যদি ইউজারের কন্টাক্ট আগে থেকেই সেভ না থাকে
   if chat_id not in user_contacts:
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_phone = KeyboardButton(
@@ -106,14 +122,69 @@ def send_welcome(message):
 
     bot.send_message(
         chat_id,
-        "আসসালামু আলাইকুম। আমাদের টপ আপ বটে আপনাকে স্বাগতম! 🎮✨\n\nবট ব্যবহারের"
-        " পূর্বে আপনার কন্টাক্ট নম্বরটি শেয়ার করুন (এটি শুধুমাত্র আপনার প্রোফাইল"
-        " ভেরিফিকেশনের জন্য নেওয়া হচ্ছে):",
+        f"{latest_broadcast}\n\n━━━━━━━━━━━━━━━\nআসসালামু আলাইকুম। আমাদের টপ"
+        " আপ বটে আপনাকে স্বাগতম! 🎮✨\n\nবট ব্যবহারের পূর্বে আপনার কন্টাক্ট নম্বরটি"
+        " শেয়ার করুন:",
         reply_markup=markup,
+        parse_mode="Markdown",
     )
     user_states[chat_id] = "WAITING_FOR_CONTACT"
   else:
+    bot.send_message(chat_id, latest_broadcast, parse_mode="Markdown")
     show_main_menu(chat_id)
+
+
+# নতুন ব্রডকাস্ট কমান্ড (এটি শতভাগ নিশ্চিত যে শুধুমাত্র আপনি তথা অ্যাডমিনই ব্যবহার করতে পারবেন)
+@bot.message_handler(commands=["broadcast"])
+def broadcast_message(message):
+  global latest_broadcast, sent_users
+  chat_id = message.chat.id
+
+  # নিরাপত্তা চেক: অ্যাডমিন ছাড়া অন্য কেউ কমান্ড দিলে সেটি কাজ করবে না
+  if chat_id != ADMIN_ID:
+    return
+
+  text_to_send = message.text.replace("/broadcast", "").strip()
+
+  if not text_to_send:
+    bot.reply_to(
+        message,
+        "❌ দয়া করে মেসেজসহ কমান্ডটি দিন। যেমন:\n`/broadcast 🔥 বিশাল অফার!"
+        " সকল প্যাকেজে ১০% ছাড়!`",
+        parse_mode="Markdown",
+    )
+    return
+
+  # নতুন অফার আপডেট করা হলো এবং পূর্বের পাঠানো লিস্ট রিসেট করা হলো
+  latest_broadcast = text_to_send
+  sent_users.clear()
+
+  success_count = 0
+  fail_count = 0
+
+  bot.reply_to(
+      message, "⏳ সকল ইউজারের কাছে একবার মাত্র নোটিফিকেশন পাঠানো হচ্ছে..."
+  )
+
+  for uid in active_users:
+    try:
+      bot.send_message(
+          uid,
+          f"🔔 **বিশেষ ঘোষণা / অফার:**\n\n{text_to_send}",
+          parse_mode="Markdown",
+      )
+      sent_users.add(uid)
+      success_count += 1
+      time.sleep(0.3)
+    except Exception as e:
+      print(f"Failed to send to {uid}: {e}")
+      fail_count += 1
+
+  bot.send_message(
+      ADMIN_ID,
+      f"✅ ব্রডকাস্ট সম্পন্ন!\n\n• সফলভাবে পাঠানো হয়েছে: {success_count}"
+      f" জন\n• ব্যর্থ হয়েছে: {fail_count} জন",
+  )
 
 
 # মূল মেনু দেখানোর ফাংশন
@@ -238,7 +309,6 @@ def callback_query(call):
     except Exception:
       pass
 
-  # এডমিন প্যানেল থেকে ইউজারের পেমেন্ট সফল বা ব্যর্থ করার বাটন হ্যান্ডলিং
   elif call.data.startswith("admin_reply_"):
     if chat_id != ADMIN_ID:
       return
@@ -384,7 +454,6 @@ def handle_all_messages(message):
   user = message.from_user
   current_state = user_states.get(chat_id)
 
-  # ১. ইউজার যখন কন্টাক্ট শেয়ার করবে
   if message.contact:
     phone_number = message.contact.phone_number
     user_contacts[chat_id] = phone_number
@@ -397,7 +466,6 @@ def handle_all_messages(message):
         f"• কন্টাক্ট নম্বর: `{phone_number}`"
     )
 
-    # এডমিনের কাছে ইউজারের প্রোফাইল এবং নম্বর পাঠিয়ে দেওয়া হবে
     try:
       bot.send_message(ADMIN_ID, user_info_msg, parse_mode="Markdown")
     except Exception as e:
@@ -412,7 +480,6 @@ def handle_all_messages(message):
     show_main_menu(chat_id)
     return
 
-  # যদি কেউ কন্টাক্ট না দিয়ে অন্য কিছু লেখে অথচ স্টেট WAITING_FOR_CONTACT থাকে
   if current_state == "WAITING_FOR_CONTACT":
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_phone = KeyboardButton(
@@ -432,7 +499,6 @@ def handle_all_messages(message):
   )
   phone_num = user_contacts.get(chat_id, "শেয়ার করা হয়নি")
 
-  # ২. ট্রানজেকশন আইডি বা পেমেন্ট স্ক্রিনশট গ্রহণ করা
   if current_state == "WAITING_FOR_TRX":
     if chat_id not in user_orders:
       bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
@@ -510,7 +576,6 @@ def handle_all_messages(message):
 
     return
 
-  # ৩. ইউজার যখন গেম ইউআইডি (UID) পাঠাবে
   elif current_state == "WAITING_FOR_UID":
     if chat_id not in user_orders:
       bot.reply_to(message, "দয়া করে প্রথমে /start কমান্ড দিয়ে মেনুতে যান।")
@@ -552,7 +617,7 @@ def handle_all_messages(message):
           " ধন্যবাদ! ❤️",
       )
     except Exception as e:
-      print(f"Forward UID failed: {e}")
+      print(f"Failed to forward UID: {e}")
       bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
 
     user_states.pop(chat_id, None)
@@ -570,7 +635,6 @@ if __name__ == "__main__":
   flask_thread.start()
   print("Flask web server started on port 8080 to prevent sleep mode...")
 
-  # পুরনো ওয়েবহুক রিমুভ করা হচ্ছে
   try:
     bot.remove_webhook()
     print("Old webhooks removed successfully.")
@@ -580,7 +644,6 @@ if __name__ == "__main__":
   print("Bot is running with infinity polling...")
   while True:
     try:
-      # ত্রুটিপূর্ণ non_stop=True আর্গুমেন্টটি এখানে থেকে বাদ দেওয়া হয়েছে
       bot.infinity_polling(
           interval=0,
           timeout=20,
