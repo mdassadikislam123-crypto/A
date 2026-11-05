@@ -1,3 +1,5 @@
+import json
+import os
 import threading
 import time
 from flask import Flask
@@ -9,32 +11,55 @@ from telebot.types import (
     ReplyKeyboardMarkup,
 )
 
-# আপনার টেলিগ্রাম বট টোকেন
+# টেলিগ্রাম বট টোকেন
 API_TOKEN = "8973617780:AAEenWkX8Kd6q-fjHCijCrElvB0Cz8ajjNY"
 
-# আপনার টেলিগ্রামের সংখ্যাসূচক আইডি (Numeric Chat ID) - শুধুমাত্র আপনিই অ্যাডমিন
+# এডমিনের সংখ্যাসূচক আইডি
 ADMIN_ID = 7283303333
 
-# সঠিক ফরম্যাটে লিংকসমূহ
+# লিংকসমূহ
 WHATSAPP_LINK = "https://wa.me/message/25RTDSJ2EXQ7E1"
 ADMIN_TELEGRAM = "https://t.me/ownerastopup"
 
 bot = telebot.TeleBot(API_TOKEN)
 
-# ব্যবহারকারীর বর্তমান স্টেপ ও অর্ডার ডাটা ট্র্যাক করার জন্য ডিকশনারি
+# ডাটা ট্র্যাক করার ডিকশনারি ও সেট
 user_states = {}
 user_orders = {}
-user_contacts = {}  # ইউজারের কন্টাক্ট নম্বর সেভ রাখার জন্য
-active_users = set()  # সকল ইউজারের চ্যাট আইডি সেভ রাখার জন্য
+active_users = set()
 
-# সর্বশেষ অফার এবং কোন কোন ইউজারের কাছে পাঠানো হয়েছে তা ট্র্যাক করার সেট
+# কন্টাক্ট নম্বর স্থায়ীভাবে সেভ রাখার ফাইল
+CONTACTS_FILE = "user_contacts.json"
+
+
+def load_contacts():
+  if os.path.exists(CONTACTS_FILE):
+    try:
+      with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
+        return {int(k): v for k, v in json.load(f).items()}
+    except Exception:
+      return {}
+  return {}
+
+
+def save_contacts():
+  try:
+    with open(CONTACTS_FILE, "w", encoding="utf-8") as f:
+      json.dump(user_contacts, f, ensure_ascii=False, indent=4)
+  except Exception as e:
+    print(f"Error saving contacts: {e}")
+
+
+user_contacts = load_contacts()
+
+# ব্রডকাস্ট মেসেজ
 latest_broadcast = (
     "🔥 **বিশেষ অফার ও আপডেট!**\n\nআমাদের বট থেকে খুব কম মূল্যে ডায়মন্ড টপ-আপ"
     " করুন এবং দারুণ সব অফার উপভোগ করুন।"
 )
-sent_users = set()  # যে ইউজারদের কাছে অফার পাঠানো হয়েছে
+sent_users = set()
 
-# সঠিক পেমেন্ট নম্বর ও নিয়মাবলী
+# পেমেন্ট নিয়মাবলী
 PAYMENT_INFO = {
     "bkash": {
         "number": "01820313593",
@@ -44,8 +69,8 @@ PAYMENT_INFO = {
             "১. প্রথমে আপনার ডায়াল প্যাডে গিয়ে `*247#` ডায়াল করুন।\n"
             "২. এরপর **Send Money** অপশন (১ নম্বর) সিলেক্ট করুন।\n"
             "৩. প্রাপক হিসেবে আমাদের এই পার্সোনাল নম্বরটি দিন: `01820313593`\n"
-            "৪. আপনার প্যাকেজের নির্দিষ্ট টাকার পরিমাণ (Price) বসিয়ে পিন নম্বর দিয়ে সেন্ড মানি সম্পন্ন করুন।\n"
-            "৫. পরিশেষে প্রাপ্ত **TrxID** (ট্রানজেকশন আইডি) অথবা পেমেন্টের স্ক্রিনশট এখানে পাঠিয়ে দিন।"
+            "৪. আপনার প্যাকেজের নির্দিষ্ট টাকার পরিমাণ বসিয়ে পিন নম্বর দিয়ে সেন্ড মানি সম্পন্ন করুন।\n"
+            "৫. পরিশেষে প্রাপ্ত **TrxID** অথবা পেমেন্টের স্ক্রিনশট এখানে পাঠিয়ে দিন।"
         ),
     },
     "rocket": {
@@ -56,13 +81,13 @@ PAYMENT_INFO = {
             "১. প্রথমে আপনার ডায়াল প্যাডে গিয়ে `*322#` ডায়াল করুন।\n"
             "২. এরপর **Send Money** অপশন সিলেক্ট করুন।\n"
             "৩. প্রাপক হিসেবে আমাদের এই পার্সোনাল নম্বরটি দিন: `01820313593`\n"
-            "৪. আপনার প্যাকেজের নির্দিষ্ট টাকার পরিমাণ (Price) বসিয়ে পিন নম্বর দিয়ে লেনদেন সম্পন্ন করুন।\n"
-            "৫. পরিশেষে প্রাপ্ত **TrxID** (ট্রানজেকশন আইডি) অথবা পেমেন্টের স্ক্রিনশট এখানে পাঠিয়ে দিন।"
+            "৪. আপনার প্যাকেজের নির্দিষ্ট টাকার পরিমাণ বসিয়ে পিন নম্বর দিয়ে লেনদেন সম্পন্ন করুন।\n"
+            "৫. পরিশেষে প্রাপ্ত **TrxID** অথবা পেমেন্টের স্ক্রিনশট এখানে পাঠিয়ে দিন।"
         ),
     },
 }
 
-# প্যাকেজের তালিকা ও দাম
+# প্যাকেজ তালিকা
 packages = {
     "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},
     "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},
@@ -75,7 +100,7 @@ packages = {
     "pack9": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
 }
 
-# --- Flask Server (রেন্ডার স্লিপ মোড রোধ করার জন্য) ---
+# Flask Server (রেন্ডার স্লিপ মোড রোধ করতে)
 app = Flask(__name__)
 
 
@@ -88,10 +113,7 @@ def run_flask():
   app.run(host="0.0.0.0", port=8080)
 
 
-# ---------------------------------------------
-
-
-# ১. প্রথম কমান্ড: স্টার্ট
+# স্টার্ট কমান্ড
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
   chat_id = message.chat.id
@@ -99,12 +121,11 @@ def send_welcome(message):
   if chat_id != ADMIN_ID:
     active_users.add(chat_id)
 
-  # যদি ইউজার অ্যাডমিন হয়
   if chat_id == ADMIN_ID:
     bot.send_message(
         chat_id,
-        "এডমিন প্যানেলে স্বাগতম! বট সচল আছে।\n\n📢 সবার কাছে একবার মাত্র অফার"
-        " পাঠাতে ব্যবহার করুন:\n`/broadcast আপনার অফার বা মেসেজ`",
+        "এডমিন প্যানেলে স্বাগতম! বট সচল আছে।\n\n📢 সবার কাছে অফার পাঠাতে ব্যবহার"
+        " করুন:\n`/broadcast আপনার অফার বা মেসেজ`",
         parse_mode="Markdown",
     )
     return
@@ -112,7 +133,6 @@ def send_welcome(message):
   user_states.pop(chat_id, None)
   user_orders.pop(chat_id, None)
 
-  # যদি ইউজারের কন্টাক্ট আগে থেকেই সেভ না থাকে
   if chat_id not in user_contacts:
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button_phone = KeyboardButton(
@@ -134,37 +154,30 @@ def send_welcome(message):
     show_main_menu(chat_id)
 
 
-# নতুন ব্রডকাস্ট কমান্ড (শুধুমাত্র অ্যাডমিনের জন্য সুরক্ষিত)
+# ব্রডকাস্ট কমান্ড
 @bot.message_handler(commands=["broadcast"])
 def broadcast_message(message):
   global latest_broadcast, sent_users
   chat_id = message.chat.id
 
-  # নিরাপত্তা চেক: অ্যাডমিন ছাড়া অন্য কেউ কমান্ড দিলে কাজ করবে না
   if chat_id != ADMIN_ID:
     return
 
   text_to_send = message.text.replace("/broadcast", "").strip()
-
   if not text_to_send:
     bot.reply_to(
         message,
-        "❌ দয়া করে মেসেজসহ কমান্ডটি দিন। যেমন:\n`/broadcast 🔥 বিশাল অফার!"
-        " সকল প্যাকেজে ১০% ছাড়!`",
+        "❌ দয়া করে মেসেজসহ কমান্ডটি দিন। যেমন:\n`/broadcast 🔥 বিশাল অফার!`",
         parse_mode="Markdown",
     )
     return
 
-  # নতুন অফার আপডেট করা হলো এবং পূর্বের পাঠানো লিস্ট রিসেট করা হলো
   latest_broadcast = text_to_send
   sent_users.clear()
-
   success_count = 0
   fail_count = 0
 
-  bot.reply_to(
-      message, "⏳ সকল ইউজারের কাছে একবার মাত্র নোটিফিকেশন পাঠানো হচ্ছে..."
-  )
+  bot.reply_to(message, "⏳ সকল ইউজারের কাছে নোটিফিকেশন পাঠানো হচ্ছে...")
 
   for uid in active_users:
     try:
@@ -322,11 +335,9 @@ def callback_query(call):
         "দয়া করে আপনার সঠিক গেম ইউআইডি (Game UID) এই চ্যাটে লিখে পাঠিয়ে দিন,"
         " যেন টপ-আপ দেওয়া যায়:"
     )
-
     not_found_msg = (
         "❌ **দুঃখিত, আপনার ট্রানজেকশন আইডি খুঁজে পাওয়া যায়নি।**\n\n"
-        "দয়া করে আপনার সঠিক ট্রানজেকশন আইডি (TrxID) অথবা পেমেন্টের সঠিক"
-        " স্ক্রিনশট আবার এই চ্যাটে পাঠিয়ে দিন।"
+        "দয়া করে আপনার সঠিক ট্রানজেকশন আইডি (TrxID) আবার পাঠিয়ে দিন।"
     )
 
     if action == "success":
@@ -355,7 +366,6 @@ def callback_query(call):
 
   elif call.data in packages:
     selected_package = packages[call.data]
-
     if "Out of stock" in selected_package["name"]:
       bot.answer_callback_query(
           call.id,
@@ -446,17 +456,17 @@ def callback_query(call):
 )
 def handle_all_messages(message):
   chat_id = message.chat.id
-  is_admin = chat_id == ADMIN_ID
-
-  if is_admin:
+  if chat_id == ADMIN_ID:
     return
 
   user = message.from_user
   current_state = user_states.get(chat_id)
 
+  # কন্টাক্ট রিসিভ করা হলে
   if message.contact:
     phone_number = message.contact.phone_number
     user_contacts[chat_id] = phone_number
+    save_contacts()
 
     user_info_msg = (
         f"👤 **নতুন ইউজার যুক্ত হয়েছে!**\n\n"
@@ -519,9 +529,7 @@ def handle_all_messages(message):
       return
 
     bot.reply_to(
-        message,
-        "⏳ আপনার ট্রানজেকশন আইডিটি চেক করা হচ্ছে, দয়া করে ১ থেকে ২ মিনিট"
-        " অপেক্ষা করুন।",
+        message, "⏳ আপনার ট্রানজেকশন আইডিটি চেক করা হচ্ছে, অপেক্ষা করুন।"
     )
 
     order_info = user_orders.get(chat_id, {})
@@ -573,7 +581,6 @@ def handle_all_messages(message):
     except Exception as e:
       print(f"Forward payment failed: {e}")
       bot.reply_to(message, "❌ তথ্য পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
-
     return
 
   elif current_state == "WAITING_FOR_UID":
@@ -609,7 +616,6 @@ def handle_all_messages(message):
 
     try:
       bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-
       bot.reply_to(
           message,
           "✅ আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে!\n⏳ ১ থেকে ২ মিনিট"
@@ -628,12 +634,12 @@ def handle_all_messages(message):
     bot.reply_to(message, "বট সচল আছে। নতুন করে শুরু করতে /start কমান্ড দিন।")
 
 
-# --- মূল রান সেকশন ---
+# মূল রান সেকশন
 if __name__ == "__main__":
   flask_thread = threading.Thread(target=run_flask)
   flask_thread.daemon = True
   flask_thread.start()
-  print("Flask web server started on port 8080 to prevent sleep mode...")
+  print("Flask web server started on port 8080...")
 
   try:
     bot.remove_webhook()
@@ -645,9 +651,7 @@ if __name__ == "__main__":
   while True:
     try:
       bot.infinity_polling(
-          interval=0,
-          timeout=20,
-          long_polling_timeout=20,
+          interval=0, timeout=20, long_polling_timeout=20
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
