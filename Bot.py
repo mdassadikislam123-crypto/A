@@ -360,6 +360,29 @@ def callback_query(call):
       bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
     return
 
+  elif call.data.startswith("admin_deliver_"):
+    if chat_id != ADMIN_ID:
+      return
+
+    target_user_id = int(call.data.split("_")[2])
+    delivery_msg = (
+        "🎉 **অভিনন্দন! আপনার অর্ডার সফলভাবে সম্পন্ন হয়েছে।**\n\n"
+        "আপনার অ্যাকাউন্টে ডায়মন্ড সফলভাবে পাঠিয়ে দেওয়া হয়েছে। আমাদের সাথে"
+        " থাকার জন্য ধন্যবাদ! ❤️"
+    )
+
+    try:
+      bot.send_message(target_user_id, delivery_msg, parse_mode="Markdown")
+      bot.answer_callback_query(
+          call.id, "✅ ডায়মন্ড সফলভাবে ডেলিভারি করা হয়েছে!"
+      )
+      bot.edit_message_reply_markup(
+          chat_id=chat_id, message_id=call.message.message_id, reply_markup=None
+      )
+    except Exception as e:
+      bot.answer_callback_query(call.id, f"❌ সমস্যা হয়েছে: {e}")
+    return
+
   elif call.data == "back_to_menu":
     user_states.pop(chat_id, None)
     user_orders.pop(chat_id, None)
@@ -614,13 +637,26 @@ def handle_all_messages(message):
         f"🆔 গেম UID: `{uid}`"
     )
 
+    # নতুন আপডেট: এডমিনের জন্য ডেলিভারি কনফার্মেশন বাটন যুক্ত করা হলো
+    admin_markup = InlineKeyboardMarkup()
+    admin_markup.add(
+        InlineKeyboardButton(
+            "✅ ডায়মন্ড পাঠানো সম্পন্ন হয়েছে (কনফার্ম)",
+            callback_data=f"admin_deliver_{chat_id}",
+        )
+    )
+
     try:
-      bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+      bot.send_message(
+          ADMIN_ID, admin_msg, parse_mode="Markdown", reply_markup=admin_markup
+      )
+      # ইউজারের জন্য লোডিং এবং অপেক্ষার মেসেজ
       bot.reply_to(
           message,
-          "✅ আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে!\n⏳ ১ থেকে ২ মিনিট"
-          " অপেক্ষা করুন, খুব শীঘ্রই আপনার আইডিতে ডায়মন্ড চলে যাবে।"
-          " ধন্যবাদ! ❤️",
+          "⏳ **আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে!**\n\n"
+          "লোডিং হচ্ছে... ২ মিনিট অপেক্ষা করুন, খুব শীঘ্রই আপনার আইডিতে ডায়মন্ড"
+          " চলে যাবে। ধন্যবাদ! ❤️",
+          parse_mode="Markdown",
       )
     except Exception as e:
       print(f"Failed to forward UID: {e}")
@@ -655,5 +691,5 @@ if __name__ == "__main__":
       )
     except Exception as e:
       print(f"Bot encountered an error: {e}")
-      print("Restarting polling in 5 secondscharts...")
+      print("Restarting polling in 5 seconds...")
       time.sleep(5)
