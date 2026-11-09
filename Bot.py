@@ -90,15 +90,15 @@ PAYMENT_INFO = {
 
 # প্যাকেজ তালিকা (১২৪০ ডায়মন্ডের পরে ২৫৩০ ডায়মন্ড যুক্ত করা হয়েছে)
 packages = {
-    "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},
-    "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},
-    "pack3": {"name": "💎 115 ডায়মন্ড", "price": "77 TK"},
-    "pack4": {"name": "💎 240 ডায়মন্ড", "price": "154 TK"},
-    "pack5": {"name": "💎 610 ডায়মন্ড", "price": "385 TK"},
-    "pack6": {"name": "💎 1240 ডায়মন্ড", "price": "780 TK"},
+    "pack1": {"name": "💎 25 ডায়মন্ড", "price": "21 TK"},
+    "pack2": {"name": "💎 50 ডায়মন্ড", "price": "35 TK"},
+    "pack3": {"name": "💎 115 ডায়মন্ড", "price": "76 TK"},
+    "pack4": {"name": "💎 240 ডায়মন্ড", "price": "152 TK"},
+    "pack5": {"name": "💎 610 ডায়মন্ড", "price": "383 TK"},
+    "pack6": {"name": "💎 1240 ডায়মন্ড", "price": "770 TK"},
     "pack7": {"name": "💎 2530 ডায়মন্ড", "price": "1550 TK"},
     "pack8": {"name": "Weekly", "price": "152 TK"},
-    "pack9": {"name": "Monthly", "price": "770 TK"},
+    "pack9": {"name": "Monthly", "price": "765 TK"},
     "pack10": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
 }
 
