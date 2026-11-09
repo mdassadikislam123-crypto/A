@@ -88,7 +88,7 @@ PAYMENT_INFO = {
     },
 }
 
-# প্যাকেজ তালিকা
+# প্যাকেজ তালিকা (১২৪০ ডায়মন্ডের পরে ২৫৩০ ডায়মন্ড যুক্ত করা হয়েছে)
 packages = {
     "pack1": {"name": "💎 25 ডায়মন্ড", "price": "22 TK"},
     "pack2": {"name": "💎 50 ডায়মন্ড", "price": "36 TK"},
@@ -96,9 +96,10 @@ packages = {
     "pack4": {"name": "💎 240 ডায়মন্ড", "price": "154 TK"},
     "pack5": {"name": "💎 610 ডায়মন্ড", "price": "385 TK"},
     "pack6": {"name": "💎 1240 ডায়মন্ড", "price": "780 TK"},
-    "pack7": {"name": "Weekly", "price": "152 TK"},
-    "pack8": {"name": "Monthly", "price": "770 TK"},
-    "pack9": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
+    "pack7": {"name": "💎 2530 ডায়মন্ড", "price": "1550 TK"},
+    "pack8": {"name": "Weekly", "price": "152 TK"},
+    "pack9": {"name": "Monthly", "price": "770 TK"},
+    "pack10": {"name": "❌২০০০ Unipin (Out of stock)", "price": "1690 TK"},
 }
 
 # Flask Server (রেন্ডার স্লিপ মোড রোধ করতে)
@@ -637,7 +638,6 @@ def handle_all_messages(message):
         f"🆔 গেম UID: `{uid}`"
     )
 
-    # নতুন আপডেট: এডমিনের জন্য ডেলিভারি কনফার্মেশন বাটন যুক্ত করা হলো
     admin_markup = InlineKeyboardMarkup()
     admin_markup.add(
         InlineKeyboardButton(
@@ -650,7 +650,6 @@ def handle_all_messages(message):
       bot.send_message(
           ADMIN_ID, admin_msg, parse_mode="Markdown", reply_markup=admin_markup
       )
-      # ইউজারের জন্য লোডিং এবং অপেক্ষার মেসেজ
       bot.reply_to(
           message,
           "⏳ **আপনার গেম ইউআইডি সফলভাবে জমা হয়েছে!**\n\n"
