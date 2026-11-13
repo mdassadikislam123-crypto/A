@@ -88,7 +88,7 @@ PAYMENT_INFO = {
     },
 }
 
-# প্যাকেজ তালিকা (১২৪০ ডায়মন্ডের পরে ২৫৩০ ডায়মন্ড যুক্ত করা হয়েছে)
+# প্যাকেজ তালিকা
 packages = {
     "pack1": {"name": "💎 25 ডায়মন্ড", "price": "21 TK"},
     "pack2": {"name": "💎 50 ডায়মন্ড", "price": "35 TK"},
@@ -113,6 +113,66 @@ def home():
 
 def run_flask():
   app.run(host="0.0.0.0", port=8080)
+
+
+# মূল মেনু দেখানোর ফাংশন
+def show_main_menu(chat_id):
+  markup = InlineKeyboardMarkup()
+  markup.add(
+      InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list")
+  )
+  markup.add(
+      InlineKeyboardButton(
+          "💳 পেমেন্ট মেথড ও নিয়ম", callback_data="show_payment"
+      )
+  )
+  markup.add(
+      InlineKeyboardButton(
+          "💬 এডমিনের সাথে যোগাযোগ", callback_data="show_contact"
+      )
+  )
+
+  text = (
+      "স্বাগতম! নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
+  )
+  bot.send_message(chat_id, text, reply_markup=markup)
+
+
+# প্যাকেজ মেনু
+def show_packages_menu(chat_id, message_id=None):
+  markup = InlineKeyboardMarkup()
+  for key, value in packages.items():
+    markup.add(
+        InlineKeyboardButton(
+            f"{value['name']} - {value['price']}", callback_data=key
+        )
+    )
+
+  markup.add(
+      InlineKeyboardButton(
+          "⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"
+      )
+  )
+
+  text = (
+      "💎 **আমাদের টপ-আপ প্যাকেজসমূহ:**\n\nনিচের প্যাকেজগুলো থেকে আপনার পছন্দের"
+      " প্যাকেজটি সিলেক্ট করুন:"
+  )
+  if message_id:
+    try:
+      bot.edit_message_text(
+          text=text,
+          chat_id=chat_id,
+          message_id=message_id,
+          reply_markup=markup,
+          parse_mode="Markdown",
+      )
+    except Exception:
+      bot.send_message(
+          chat_id, text, reply_markup=markup, parse_mode="Markdown"
+      )
+  else:
+    bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
 
 # স্টার্ট কমান্ড
@@ -200,66 +260,6 @@ def broadcast_message(message):
       f"✅ ব্রডকাস্ট সম্পন্ন!\n\n• সফলভাবে পাঠানো হয়েছে: {success_count}"
       f" জন\n• ব্যর্থ হয়েছে: {fail_count} জন",
   )
-
-
-# মূল মেনু দেখানোর ফাংশন
-def show_main_menu(chat_id):
-  markup = InlineKeyboardMarkup()
-  markup.add(
-      InlineKeyboardButton("💎 টপ আপ লিস্ট দেখুন", callback_data="show_list")
-  )
-  markup.add(
-      InlineKeyboardButton(
-          "💳 পেমেন্ট মেথড ও নিয়ম", callback_data="show_payment"
-      )
-  )
-  markup.add(
-      InlineKeyboardButton(
-          "💬 এডমিনের সাথে যোগাযোগ", callback_data="show_contact"
-      )
-  )
-
-  text = (
-      "স্বাগতম! নিচের অপশনগুলো থেকে আপনার প্রয়োজনীয় অপশনটি সিলেক্ট করুন:"
-  )
-  bot.send_message(chat_id, text, reply_markup=markup)
-
-
-# প্যাকেজ মেনু
-def show_packages_menu(chat_id, message_id=None):
-  markup = InlineKeyboardMarkup()
-  for key, value in packages.items():
-    markup.add(
-        InlineKeyboardButton(
-            f"{value['name']} - {value['price']}", callback_data=key
-        )
-    )
-
-  markup.add(
-      InlineKeyboardButton(
-          "⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"
-      )
-  )
-
-  text = (
-      "💎 **আমাদের টপ-আপ প্যাকেজসমূহ:**\n\nনিচের প্যাকেজগুলো থেকে আপনার পছন্দের"
-      " প্যাকেজটি সিলেক্ট করুন:"
-  )
-  if message_id:
-    try:
-      bot.edit_message_text(
-          text=text,
-          chat_id=chat_id,
-          message_id=message_id,
-          reply_markup=markup,
-          parse_mode="Markdown",
-      )
-    except Exception:
-      bot.send_message(
-          chat_id, text, reply_markup=markup, parse_mode="Markdown"
-      )
-  else:
-    bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
 
 # ইনলাইন বাটন হ্যান্ডলার
@@ -387,6 +387,10 @@ def callback_query(call):
   elif call.data == "back_to_menu":
     user_states.pop(chat_id, None)
     user_orders.pop(chat_id, None)
+    try:
+      bot.delete_message(chat_id, call.message.message_id)
+    except Exception:
+      pass
     show_main_menu(chat_id)
 
   elif call.data in packages:
@@ -629,7 +633,7 @@ def handle_all_messages(message):
 
     admin_msg = (
         "🎮 পেমেন্ট কনফার্মড! এখন টপ-আপ দিন:\n\n"
-        f"👤 ক্রেতা: {user_info}\n"
+        f"👤 ক্রেতার নাম: {user.first_name}\n"
         f"📞 মোবাইল: `{phone_num}`\n"
         f"🆔 ইউজার আইডি: `{chat_id}`\n"
         f"📦 প্যাকেজ: {selected_package['name']} - {selected_package['price']}\n"
@@ -666,7 +670,11 @@ def handle_all_messages(message):
     return
 
   else:
-    bot.reply_to(message, "বট সচল আছে। নতুন করে শুরু করতে /start কমান্ড দিন।")
+    # যদি কোনো স্টেট না থাকে, তবে ইউজার সাধারণ কিছু লিখলে মেনু দেখানোর পরামর্শ দিতে পারেন
+    bot.reply_to(
+        message,
+        "বট সচল আছে। নতুন করে শুরু করতে বা মেনু দেখতে /start কমান্ড দিন।",
+    )
 
 
 # মূল রান সেকশন
