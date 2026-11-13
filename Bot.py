@@ -216,6 +216,57 @@ def send_welcome(message):
     show_main_menu(chat_id)
 
 
+# নতুন যুক্ত করা কমান্ড হ্যান্ডেলারসমূহ
+@bot.message_handler(commands=["packages"])
+def cmd_packages(message):
+  show_packages_menu(message.chat.id)
+
+
+@bot.message_handler(commands=["payment"])
+def cmd_payment(message):
+  text = (
+      "💳 **পেমেন্ট মেথড ও নিয়মাবলী:**\n\n"
+      "🔹 **বিকাশ (Personal):** `01820313593` (`*247#` ডায়াল করে সেন্ড মানি"
+      " করুন)\n"
+      "🔹 **রকেট (Personal):** `01820313593` (`*322#` ডায়াল করে সেন্ড মানি"
+      " করুন)\n\n"
+      "টাকা পাঠিয়ে ট্রানজেকশন আইডি বটে জমা দিন।"
+  )
+  markup = InlineKeyboardMarkup()
+  markup.add(
+      InlineKeyboardButton(
+          "⬅️ মূল মেনুতে ফিরে যান", callback_data="back_to_menu"
+      )
+  )
+  bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+
+
+@bot.message_handler(commands=["about"])
+def cmd_about(message):
+  text = (
+      "🤖 **বট সম্পর্কে তথ্য:**\n\n"
+      "এটি একটি অটোমেটেড ফ্রি ফায়ার ডায়মন্ড টপ-আপ বট (A.S FF TopUp)।"
+      " এখান থেকে খুব সহজেই নিরাপদে ডায়মন্ড টপ-আপ করতে পারবেন।"
+  )
+  bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+
+@bot.message_handler(commands=["support"])
+def cmd_support(message):
+  markup = InlineKeyboardMarkup()
+  markup.add(
+      InlineKeyboardButton("👑 সরাসরি ওনারের সাথে চ্যাট করুন", url=ADMIN_TELEGRAM)
+  )
+  markup.add(
+      InlineKeyboardButton("💬 WhatsApp-এ যোগাযোগ করুন", url=WHATSAPP_LINK)
+  )
+  bot.send_message(
+      message.chat.id,
+      "সাপোর্ট ও যেকোনো প্রয়োজনে নিচের মাধ্যমে যোগাযোগ করুন:",
+      reply_markup=markup,
+  )
+
+
 # ব্রডকাস্ট কমান্ড
 @bot.message_handler(commands=["broadcast"])
 def broadcast_message(message):
@@ -670,7 +721,6 @@ def handle_all_messages(message):
     return
 
   else:
-    # যদি কোনো স্টেট না থাকে, তবে ইউজার সাধারণ কিছু লিখলে মেনু দেখানোর পরামর্শ দিতে পারেন
     bot.reply_to(
         message,
         "বট সচল আছে। নতুন করে শুরু করতে বা মেনু দেখতে /start কমান্ড দিন।",
